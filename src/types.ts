@@ -16,7 +16,16 @@ export interface Trip {
   notes: string | null;
   /** Código que comparten los compañeros para unirse al viaje (join_trip). */
   invite_code: string;
+  /** Código del link de invitado (solo lectura de itinerario y ruta); null = desactivado. */
+  guest_code: string | null;
   created_at: string;
+}
+
+/** Lo que ve un invitado con el link: sin dinero ni códigos de reserva. */
+export interface GuestTrip {
+  trip: Pick<Trip, "name" | "destination" | "start_date" | "end_date">;
+  itinerary: ItineraryItem[];
+  route: RouteStop[];
 }
 
 export interface TripListItem extends Trip {

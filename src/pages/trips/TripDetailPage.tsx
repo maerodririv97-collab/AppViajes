@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CalendarDays, Check, Copy, MapPin, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, Copy, MapPin, Pencil, Share2, Trash2 } from "lucide-react";
 import { PageHeader } from "../../components/layout/Layout";
 import { Button } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
@@ -24,6 +24,7 @@ import {
 } from "../../lib/repo";
 import { TripFormModal } from "./TripFormModal";
 import { MyPersonBanner, MyPersonModal } from "./MyPerson";
+import { GuestLinkModal } from "./GuestLinkModal";
 import { SummaryTab } from "./tabs/SummaryTab";
 import { ItineraryTab } from "./tabs/ItineraryTab";
 import { ExpensesTab } from "./tabs/ExpensesTab";
@@ -89,6 +90,7 @@ export function TripDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [myPersonOpen, setMyPersonOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const del = useMutation();
   const navigate = useNavigate();
 
@@ -147,6 +149,9 @@ export function TripDetailPage() {
         }
         actions={
           <>
+            <Button variant="secondary" onClick={() => setShareOpen(true)}>
+              <Share2 size={15} /> Compartir
+            </Button>
             <Button variant="secondary" onClick={() => setEditOpen(true)}>
               <Pencil size={15} /> Editar
             </Button>
@@ -191,6 +196,7 @@ export function TripDetailPage() {
 
       <TripFormModal open={editOpen} trip={trip} onClose={() => setEditOpen(false)} />
       <MyPersonModal open={myPersonOpen} data={data} onClose={() => setMyPersonOpen(false)} />
+      <GuestLinkModal open={shareOpen} trip={trip} onClose={() => setShareOpen(false)} />
       <ConfirmDialog
         open={deleteOpen}
         title="Eliminar viaje"

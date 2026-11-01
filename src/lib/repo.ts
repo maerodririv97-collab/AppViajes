@@ -8,6 +8,7 @@ import type {
   Contribution,
   Debt,
   ExpenseShare,
+  GuestTrip,
   ExpenseWithShares,
   ItineraryItem,
   ItineraryKind,
@@ -118,6 +119,26 @@ export async function deleteTrip(id: number): Promise<void> {
 /** Da acceso al viaje del código a la cuenta actual. Devuelve el id del viaje. */
 export async function joinTrip(code: string): Promise<number> {
   return unwrap(await supabase.rpc("join_trip", { p_code: code }));
+}
+
+// ─── Link de invitado ──────────────────────────────────────────────────────
+
+/** Activa el link de invitado con un código nuevo (o lo desactiva). Devuelve el código o null. */
+export async function setGuestCode(tripId: number, enabled: boolean): Promise<string | null> {
+  const { data, error } = await supabase.rpc("set_guest_code", { p_trip_id: tripId, p_enabled: enabled });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/** Itinerario y ruta del viaje del código; no requiere sesión. null si el link no existe o se desactivó. */
+export async function getGuestTrip(code: string): Promise<GuestTrip | null> {
+  const { data, error } = await supabase.rpc("guest_trip", { p_code: code });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export function guestUrl(code: string): string {
+  return `${window.location.origin}${window.location.pathname}#/invitado/${code}`;
 }
 
 // ─── Cuentas del viaje ─────────────────────────────────────────────────────

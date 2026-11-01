@@ -25,7 +25,7 @@ import { ItineraryFormModal } from "./ItineraryFormModal";
 import { RouteSection } from "./RouteSection";
 
 /** "+1", "+2"… cuando la llegada cae en otro día que la salida. */
-function DayShift({ from, to }: { from: string; to: string }) {
+export function DayShift({ from, to }: { from: string; to: string }) {
   const n = daysBetween(dayOf(from), dayOf(to));
   if (n === 0) return null;
   return (
@@ -35,7 +35,7 @@ function DayShift({ from, to }: { from: string; to: string }) {
   );
 }
 
-function EventDetails({ ev }: { ev: TimelineEvent }) {
+export function EventDetails({ ev }: { ev: TimelineEvent }) {
   const { item } = ev;
   if (ev.type === "checkout") {
     return <div className="text-sm text-slate-500">Check-out · {itemTitle(item)}</div>;
