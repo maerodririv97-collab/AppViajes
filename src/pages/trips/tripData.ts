@@ -32,4 +32,8 @@ export interface TripData {
   itinerary: ItineraryItem[];
   /** Ciudades del viaje ordenadas por fecha de llegada. */
   route: RouteStop[];
+  /** Participante que es la cuenta actual en este viaje; null si aún no lo eligió. */
+  myPersonId: number | null;
+  /** Participantes ya vinculados a otras cuentas (no se pueden elegir). */
+  claimedPersonIds: number[];
 }

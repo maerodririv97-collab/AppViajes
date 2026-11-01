@@ -1,4 +1,4 @@
-import { ArrowRight, HandCoins, PiggyBank, Receipt, Wallet } from "lucide-react";
+import { ArrowRight, HandCoins, PiggyBank, Receipt, UserRound, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Money } from "../../../components/ui/Money";
 import { ProgressBar } from "../../../components/ui/ProgressBar";
@@ -67,6 +67,63 @@ function DebtList({
   );
 }
 
+/** Lo de la cuenta actual: su disponible, su billetera y las deudas donde participa. */
+function MySummary({ data, personId }: { data: TripData; personId: number }) {
+  const cur = data.trip.currency;
+  const b = data.balances.find((x) => x.person_id === personId);
+  if (!b) return null;
+  const wallet = data.walletBalances.find((w) => w.person_id === personId);
+  const debts = [...data.debts, ...data.walletDebts];
+  const iOwe = debts.filter((d) => d.debtor_id === personId);
+  const owedToMe = debts.filter((d) => d.creditor_id === personId);
+
+  return (
+    <div className="card border-teal-200 p-4">
+      <div className="mb-3 flex items-center gap-2 font-medium">
+        <UserRound size={16} className="text-teal-600" /> Tu resumen · {b.name}
+      </div>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div>
+          <div className="text-xs text-slate-500">Pusiste</div>
+          <Money value={b.budget} currency={cur} className="text-lg font-semibold" />
+        </div>
+        <div>
+          <div className="text-xs text-slate-500">Te queda de lo tuyo</div>
+          <Money value={b.budget - b.spent} currency={cur} signed className="text-lg font-semibold" />
+        </div>
+        <div>
+          <div className="text-xs text-slate-500">Disponible en presupuesto</div>
+          <Money value={b.available} currency={cur} signed className="text-lg font-semibold" />
+        </div>
+        <div>
+          <div className="text-xs text-slate-500">Billetera</div>
+          <Money value={wallet?.balance ?? 0} currency={cur} signed className="text-lg font-semibold" />
+        </div>
+      </div>
+      {(iOwe.length > 0 || owedToMe.length > 0) && (
+        <ul className="mt-4 space-y-1 border-t border-slate-100 pt-3 text-sm">
+          {iOwe.map((d, i) => (
+            <li key={`owe-${i}`} className="flex justify-between">
+              <span>
+                Le debes a <strong>{d.creditor_name}</strong>
+              </span>
+              <Money value={d.amount} currency={cur} className="font-semibold text-amber-700" />
+            </li>
+          ))}
+          {owedToMe.map((d, i) => (
+            <li key={`owed-${i}`} className="flex justify-between">
+              <span>
+                <strong>{d.debtor_name}</strong> te debe
+              </span>
+              <Money value={d.amount} currency={cur} className="font-semibold text-sky-700" />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function SummaryTab({ data }: { data: TripData }) {
   const { trip, balances, expenses, debts, walletBalances, walletDebts } = data;
   const cur = trip.currency;
@@ -89,6 +146,8 @@ export function SummaryTab({ data }: { data: TripData }) {
 
   return (
     <div className="space-y-6">
+      {data.myPersonId != null && <MySummary data={data} personId={data.myPersonId} />}
+
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatTile icon={PiggyBank} label="Presupuesto" value={totalBudget} currency={cur} />
         <StatTile
@@ -139,8 +198,11 @@ export function SummaryTab({ data }: { data: TripData }) {
               const debt = roundMoney(b.net_debt, cur);
               const wallet = walletBalances.find((w) => w.person_id === b.person_id);
               return (
-                <tr key={b.person_id}>
-                  <td className="td font-medium">{b.name}</td>
+                <tr key={b.person_id} className={b.person_id === data.myPersonId ? "bg-teal-50/50" : undefined}>
+                  <td className="td font-medium">
+                    {b.name}
+                    {b.person_id === data.myPersonId && <span className="ml-1 text-xs text-teal-700">(tú)</span>}
+                  </td>
                   <td className="td text-right">
                     <Money value={b.budget} currency={cur} />
                   </td>

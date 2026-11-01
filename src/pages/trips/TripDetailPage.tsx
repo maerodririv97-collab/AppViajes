@@ -11,6 +11,7 @@ import {
   computeDebts,
   deleteTrip,
   getBalances,
+  getPersonLinks,
   getTrip,
   getWalletBalances,
   listContributions,
@@ -22,6 +23,7 @@ import {
   listWalletDeposits,
 } from "../../lib/repo";
 import { TripFormModal } from "./TripFormModal";
+import { MyPersonBanner, MyPersonModal } from "./MyPerson";
 import { SummaryTab } from "./tabs/SummaryTab";
 import { ItineraryTab } from "./tabs/ItineraryTab";
 import { ExpensesTab } from "./tabs/ExpensesTab";
@@ -58,6 +60,7 @@ async function loadTripData(id: number): Promise<TripData | null> {
       listItinerary(id),
       listRouteStops(id),
     ]);
+  const links = await getPersonLinks(id, members.map((m) => m.id));
   const transfers = allTransfers.filter((t) => t.scope === "budget");
   const walletTransfers = allTransfers.filter((t) => t.scope === "wallet");
   return {
@@ -74,6 +77,7 @@ async function loadTripData(id: number): Promise<TripData | null> {
     walletDebts: computeDebts(walletTransfers, [], trip.currency),
     itinerary,
     route,
+    ...links,
   };
 }
 
@@ -84,6 +88,7 @@ export function TripDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [myPersonOpen, setMyPersonOpen] = useState(false);
   const del = useMutation();
   const navigate = useNavigate();
 
@@ -99,6 +104,7 @@ export function TripDetailPage() {
   }
 
   const { trip } = data;
+  const me = data.members.find((m) => m.id === data.myPersonId);
 
   return (
     <>
@@ -120,6 +126,11 @@ export function TripDetailPage() {
               </span>
             )}
             <span>Moneda: {trip.currency}</span>
+            {me && (
+              <button onClick={() => setMyPersonOpen(true)} className="hover:text-teal-600" title="Cambiar">
+                Tú: <span className="font-medium text-slate-700">{me.name}</span>
+              </button>
+            )}
             <button
               onClick={async () => {
                 await navigator.clipboard.writeText(trip.invite_code);
@@ -152,6 +163,8 @@ export function TripDetailPage() {
         }
       />
 
+      {!me && data.members.length > 0 && <MyPersonBanner data={data} />}
+
       <div className="mb-6 flex gap-1 border-b border-slate-200">
         {TABS.map((t) => (
           <button
@@ -177,6 +190,7 @@ export function TripDetailPage() {
       {tab === "members" && <MembersTab data={data} />}
 
       <TripFormModal open={editOpen} trip={trip} onClose={() => setEditOpen(false)} />
+      <MyPersonModal open={myPersonOpen} data={data} onClose={() => setMyPersonOpen(false)} />
       <ConfirmDialog
         open={deleteOpen}
         title="Eliminar viaje"

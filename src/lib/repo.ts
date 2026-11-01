@@ -120,6 +120,33 @@ export async function joinTrip(code: string): Promise<number> {
   return unwrap(await supabase.rpc("join_trip", { p_code: code }));
 }
 
+// ─── Cuentas del viaje ─────────────────────────────────────────────────────
+
+/**
+ * Participante que es la cuenta actual en el viaje y participantes ya vinculados a otras
+ * cuentas. Un vínculo a alguien que ya no es integrante se ignora.
+ */
+export async function getPersonLinks(
+  tripId: number,
+  memberIds: number[],
+): Promise<{ myPersonId: number | null; claimedPersonIds: number[] }> {
+  const [{ data: auth }, rows] = await Promise.all([
+    supabase.auth.getSession(),
+    supabase.from("trip_users").select("user_id, person_id").eq("trip_id", tripId).then(unwrap),
+  ]);
+  const me = auth.session?.user.id;
+  const linked = rows.filter((r) => r.person_id != null && memberIds.includes(r.person_id));
+  return {
+    myPersonId: linked.find((r) => r.user_id === me)?.person_id ?? null,
+    claimedPersonIds: linked.filter((r) => r.user_id !== me).map((r) => r.person_id),
+  };
+}
+
+/** Vincula la cuenta actual con un participante del viaje (null lo desvincula). */
+export async function setMyPerson(tripId: number, personId: number | null): Promise<void> {
+  unwrap(await supabase.rpc("set_my_person", { p_trip_id: tripId, p_person_id: personId }));
+}
+
 // ─── Integrantes ───────────────────────────────────────────────────────────
 
 export async function listMembers(tripId: number): Promise<Person[]> {
