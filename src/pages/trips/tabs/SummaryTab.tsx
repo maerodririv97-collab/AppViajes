@@ -169,76 +169,78 @@ export function SummaryTab({ data }: { data: TripData }) {
 
       <div className="card overflow-hidden">
         <div className="border-b border-slate-200 px-4 py-3 font-medium">Estado por persona</div>
-        <table className="w-full">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="th">Persona</th>
-              <th className="th text-right">Puso</th>
-              <th className="th text-right" title="Su parte de todos los gastos, sin importar quién los pagó">
-                Gastó
-              </th>
-              <th className="th text-right" title="Lo que puso menos lo que ha gastado">
-                Le queda de lo suyo
-              </th>
-              <th className="th text-right" title="Gastos que pagó otro o partes cubiertas con préstamo">
-                Deuda por gastos
-              </th>
-              <th className="th text-right" title="Le queda de lo suyo + lo que debe por gastos − lo que le deben">
-                Disponible en presupuesto
-              </th>
-              <th className="th text-right" title="Plata fuera del presupuesto (pestaña Billetera)">
-                Billetera
-              </th>
-              <th className="th w-36">Consumo</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {balances.map((b) => {
-              const own = b.budget - b.spent;
-              const debt = roundMoney(b.net_debt, cur);
-              const wallet = walletBalances.find((w) => w.person_id === b.person_id);
-              return (
-                <tr key={b.person_id} className={b.person_id === data.myPersonId ? "bg-teal-50/50" : undefined}>
-                  <td className="td font-medium">
-                    {b.name}
-                    {b.person_id === data.myPersonId && <span className="ml-1 text-xs text-teal-700">(tú)</span>}
-                  </td>
-                  <td className="td text-right">
-                    <Money value={b.budget} currency={cur} />
-                  </td>
-                  <td className="td text-right">
-                    <Money value={b.spent} currency={cur} />
-                  </td>
-                  <td className="td text-right font-semibold">
-                    <Money value={own} currency={cur} signed />
-                  </td>
-                  <td className="td text-right text-xs">
-                    {debt > 0 && (
-                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">
-                        debe <Money value={debt} currency={cur} />
-                      </span>
-                    )}
-                    {debt < 0 && (
-                      <span className="rounded bg-sky-100 px-1.5 py-0.5 text-sky-700">
-                        le deben <Money value={-debt} currency={cur} />
-                      </span>
-                    )}
-                    {debt === 0 && <span className="text-slate-400">—</span>}
-                  </td>
-                  <td className="td text-right">
-                    <Money value={b.available} currency={cur} signed />
-                  </td>
-                  <td className="td text-right text-slate-500">
-                    <Money value={wallet?.balance ?? 0} currency={cur} signed />
-                  </td>
-                  <td className="td">
-                    <ProgressBar used={b.spent} total={b.budget} />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="th">Persona</th>
+                <th className="th text-right">Puso</th>
+                <th className="th text-right" title="Su parte de todos los gastos, sin importar quién los pagó">
+                  Gastó
+                </th>
+                <th className="th text-right" title="Lo que puso menos lo que ha gastado">
+                  Le queda de lo suyo
+                </th>
+                <th className="th text-right" title="Gastos que pagó otro o partes cubiertas con préstamo">
+                  Deuda por gastos
+                </th>
+                <th className="th text-right" title="Le queda de lo suyo + lo que debe por gastos − lo que le deben">
+                  Disponible en presupuesto
+                </th>
+                <th className="th text-right" title="Plata fuera del presupuesto (pestaña Billetera)">
+                  Billetera
+                </th>
+                <th className="th w-36">Consumo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {balances.map((b) => {
+                const own = b.budget - b.spent;
+                const debt = roundMoney(b.net_debt, cur);
+                const wallet = walletBalances.find((w) => w.person_id === b.person_id);
+                return (
+                  <tr key={b.person_id} className={b.person_id === data.myPersonId ? "bg-teal-50/50" : undefined}>
+                    <td className="td font-medium">
+                      {b.name}
+                      {b.person_id === data.myPersonId && <span className="ml-1 text-xs text-teal-700">(tú)</span>}
+                    </td>
+                    <td className="td text-right">
+                      <Money value={b.budget} currency={cur} />
+                    </td>
+                    <td className="td text-right">
+                      <Money value={b.spent} currency={cur} />
+                    </td>
+                    <td className="td text-right font-semibold">
+                      <Money value={own} currency={cur} signed />
+                    </td>
+                    <td className="td text-right text-xs">
+                      {debt > 0 && (
+                        <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">
+                          debe <Money value={debt} currency={cur} />
+                        </span>
+                      )}
+                      {debt < 0 && (
+                        <span className="rounded bg-sky-100 px-1.5 py-0.5 text-sky-700">
+                          le deben <Money value={-debt} currency={cur} />
+                        </span>
+                      )}
+                      {debt === 0 && <span className="text-slate-400">—</span>}
+                    </td>
+                    <td className="td text-right">
+                      <Money value={b.available} currency={cur} signed />
+                    </td>
+                    <td className="td text-right text-slate-500">
+                      <Money value={wallet?.balance ?? 0} currency={cur} signed />
+                    </td>
+                    <td className="td">
+                      <ProgressBar used={b.spent} total={b.budget} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
         <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">
           <strong>Le queda de lo suyo</strong> = lo que puso − lo que ha gastado (su parte real de los gastos).{" "}
           <strong>Disponible en presupuesto</strong> incluye los gastos cubiertos por otros: quien debe tiene más

@@ -75,8 +75,8 @@ export function TripFormModal({ open, trip, onClose, onCreated }: Props) {
         </>
       }
     >
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Nombre del viaje" className="col-span-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Nombre del viaje" className="sm:col-span-2">
           <input
             className="input"
             value={name}
@@ -103,12 +103,12 @@ export function TripFormModal({ open, trip, onClose, onCreated }: Props) {
         <Field label="Regreso">
           <input type="date" className="input" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </Field>
-        <Field label="Notas" className="col-span-2">
+        <Field label="Notas" className="sm:col-span-2">
           <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
 
         {!trip && (
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <span className="label">Integrantes</span>
             {people.length === 0 ? (
               <p className="text-sm text-slate-500">

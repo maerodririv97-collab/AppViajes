@@ -165,12 +165,12 @@ export function TripDetailPage() {
 
       {!me && data.members.length > 0 && <MyPersonBanner data={data} />}
 
-      <div className="mb-6 flex gap-1 border-b border-slate-200">
+      <div className="-mx-4 mb-6 flex gap-1 no-scrollbar overflow-x-auto overflow-y-hidden border-b border-slate-200 px-4 md:mx-0 md:px-0">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors sm:px-4 ${
               tab === t.key
                 ? "border-teal-600 text-teal-700"
                 : "border-transparent text-slate-500 hover:text-slate-800"

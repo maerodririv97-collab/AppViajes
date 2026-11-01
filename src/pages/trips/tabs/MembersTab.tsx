@@ -56,45 +56,47 @@ export function MembersTab({ data }: { data: TripData }) {
         {members.length === 0 ? (
           <p className="px-4 py-6 text-sm text-slate-500">Este viaje aún no tiene integrantes.</p>
         ) : (
-          <table className="w-full">
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr>
-                <th className="th">Nombre</th>
-                <th className="th">Teléfono</th>
-                <th className="th text-right">Presupuesto</th>
-                <th className="th text-right">Disponible</th>
-                <th className="th w-12" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {members.map((m) => {
-                const b = balances.find((x) => x.person_id === m.id);
-                return (
-                  <tr key={m.id} className="hover:bg-slate-50">
-                    <td className="td font-medium">{m.name}</td>
-                    <td className="td text-slate-500">{m.phone ?? "—"}</td>
-                    <td className="td text-right">
-                      <Money value={b?.budget ?? 0} currency={trip.currency} />
-                    </td>
-                    <td className="td text-right">
-                      <Money value={b?.available ?? 0} currency={trip.currency} signed />
-                    </td>
-                    <td className="td text-right">
-                      <IconButton
-                        title="Quitar del viaje"
-                        onClick={() => {
-                          remove.setError(null);
-                          setToRemove(m);
-                        }}
-                      >
-                        <UserMinus size={15} />
-                      </IconButton>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b border-slate-200 bg-slate-50">
+                <tr>
+                  <th className="th">Nombre</th>
+                  <th className="th">Teléfono</th>
+                  <th className="th text-right">Presupuesto</th>
+                  <th className="th text-right">Disponible</th>
+                  <th className="th w-12" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {members.map((m) => {
+                  const b = balances.find((x) => x.person_id === m.id);
+                  return (
+                    <tr key={m.id} className="hover:bg-slate-50">
+                      <td className="td font-medium">{m.name}</td>
+                      <td className="td text-slate-500">{m.phone ?? "—"}</td>
+                      <td className="td text-right">
+                        <Money value={b?.budget ?? 0} currency={trip.currency} />
+                      </td>
+                      <td className="td text-right">
+                        <Money value={b?.available ?? 0} currency={trip.currency} signed />
+                      </td>
+                      <td className="td text-right">
+                        <IconButton
+                          title="Quitar del viaje"
+                          onClick={() => {
+                            remove.setError(null);
+                            setToRemove(m);
+                          }}
+                        >
+                          <UserMinus size={15} />
+                        </IconButton>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

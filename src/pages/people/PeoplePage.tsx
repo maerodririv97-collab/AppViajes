@@ -43,50 +43,52 @@ export function PeoplePage() {
         />
       ) : (
         <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr>
-                <th className="th">Nombre</th>
-                <th className="th">Teléfono</th>
-                <th className="th">Notas</th>
-                <th className="th text-right">Viajes</th>
-                <th className="th w-20" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {people.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50">
-                  <td className="td font-medium">{p.name}</td>
-                  <td className="td text-slate-500">{p.phone ?? "—"}</td>
-                  <td className="td text-slate-500">{p.notes ?? "—"}</td>
-                  <td className="td text-right tabular-nums">{p.trip_count}</td>
-                  <td className="td">
-                    <div className="flex justify-end gap-1">
-                      <IconButton
-                        title="Editar"
-                        onClick={() => {
-                          setEditing(p);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Pencil size={15} />
-                      </IconButton>
-                      <IconButton
-                        tone="danger"
-                        title="Eliminar"
-                        onClick={() => {
-                          del.setError(null);
-                          setToDelete(p);
-                        }}
-                      >
-                        <Trash2 size={15} />
-                      </IconButton>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b border-slate-200 bg-slate-50">
+                <tr>
+                  <th className="th">Nombre</th>
+                  <th className="th">Teléfono</th>
+                  <th className="th">Notas</th>
+                  <th className="th text-right">Viajes</th>
+                  <th className="th w-20" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {people.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-50">
+                    <td className="td font-medium">{p.name}</td>
+                    <td className="td text-slate-500">{p.phone ?? "—"}</td>
+                    <td className="td text-slate-500">{p.notes ?? "—"}</td>
+                    <td className="td text-right tabular-nums">{p.trip_count}</td>
+                    <td className="td">
+                      <div className="flex justify-end gap-1">
+                        <IconButton
+                          title="Editar"
+                          onClick={() => {
+                            setEditing(p);
+                            setFormOpen(true);
+                          }}
+                        >
+                          <Pencil size={15} />
+                        </IconButton>
+                        <IconButton
+                          tone="danger"
+                          title="Eliminar"
+                          onClick={() => {
+                            del.setError(null);
+                            setToDelete(p);
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </IconButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

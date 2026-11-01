@@ -67,7 +67,7 @@ export function RouteStopFormModal({ open, data, stop, onClose }: Props) {
         </>
       }
     >
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="País">
           <input
             className="input"
@@ -98,11 +98,11 @@ export function RouteStopFormModal({ open, data, stop, onClose }: Props) {
           <input type="date" className="input" value={departure} onChange={(e) => setDeparture(e.target.value)} />
         </Field>
         {nights != null && (
-          <p className="col-span-2 -mt-2 text-sm text-slate-500">
+          <p className="sm:col-span-2 -mt-2 text-sm text-slate-500">
             {nights === 0 ? "Visita de un día, sin noches." : `${nights} ${nights === 1 ? "noche" : "noches"} en la ciudad.`}
           </p>
         )}
-        <Field label="Notas (opcional)" className="col-span-2">
+        <Field label="Notas (opcional)" className="sm:col-span-2">
           <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
       </div>

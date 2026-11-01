@@ -20,9 +20,9 @@ export function Modal({ open, title, onClose, children, footer, width = "md" }: 
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 sm:items-center sm:p-4">
       <div
-        className={`flex max-h-[90vh] w-full flex-col rounded-xl bg-white shadow-xl ${
+        className={`flex max-h-[92dvh] w-full flex-col rounded-t-xl bg-white shadow-xl sm:max-h-[90vh] sm:rounded-xl ${
           width === "lg" ? "max-w-2xl" : "max-w-lg"
         }`}
       >
@@ -34,7 +34,9 @@ export function Modal({ open, title, onClose, children, footer, width = "md" }: 
         </div>
         <div className="overflow-y-auto px-5 py-4">{children}</div>
         {footer && (
-          <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-3">{footer}</div>
+          <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            {footer}
+          </div>
         )}
       </div>
     </div>

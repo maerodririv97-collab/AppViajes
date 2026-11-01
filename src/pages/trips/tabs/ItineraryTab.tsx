@@ -102,7 +102,7 @@ export function ItineraryTab({ data }: { data: TripData }) {
     <>
       <RouteSection data={data} onAdd={(kind, defaults) => setForm({ kind, item: null, defaults })} />
 
-      <div className="mb-4 flex items-center justify-between gap-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="flex items-center gap-2 font-semibold text-slate-800">
             <MapIcon size={17} className="text-teal-600" /> Vuelos, hospedajes y transportes

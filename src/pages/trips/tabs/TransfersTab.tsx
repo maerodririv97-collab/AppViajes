@@ -83,67 +83,69 @@ export function TransfersTab({ data }: { data: TripData }) {
       ) : (
         <div className="card overflow-hidden">
           <div className="border-b border-slate-200 px-4 py-3 font-medium">Movimientos</div>
-          <table className="w-full">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="th">Fecha</th>
-                <th className="th">Tipo</th>
-                <th className="th">Movimiento</th>
-                <th className="th">Cubre / nota</th>
-                <th className="th text-right">Valor</th>
-                <th className="th w-24 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {transfers.map((t) => (
-                <tr key={t.id} className="hover:bg-slate-50">
-                  <td className="td whitespace-nowrap text-slate-500">{formatDate(t.date)}</td>
-                  <td className="td">
-                    <span
-                      className={`rounded px-2 py-0.5 text-xs ${
-                        t.kind === "loan" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
-                      }`}
-                    >
-                      {t.kind === "loan" ? "Préstamo" : "Devolución"}
-                    </span>
-                  </td>
-                  <td className="td">
-                    <span className="flex items-center gap-2">
-                      {t.from_name} <ArrowRight size={14} className="text-slate-400" /> {t.to_name}
-                    </span>
-                  </td>
-                  <td className="td text-slate-500">
-                    {t.expense_description && (
-                      <span className="mr-2 rounded bg-sky-50 px-1.5 py-0.5 text-xs text-sky-700">
-                        Su parte de: {t.expense_description}
-                      </span>
-                    )}
-                    {t.note ?? (t.expense_description ? "" : "—")}
-                  </td>
-                  <td className="td text-right font-medium">
-                    <Money value={t.amount} currency={cur} />
-                  </td>
-                  <td className="td">
-                    <div className="flex justify-end gap-1">
-                      <IconButton title="Editar" onClick={() => setForm({ transfer: t })}>
-                        <Pencil size={15} />
-                      </IconButton>
-                      <IconButton
-                        tone="danger"
-                        title="Eliminar"
-                        onClick={() => {
-                          del.setError(null);
-                          setToDelete(t);
-                        }}
-                      >
-                        <Trash2 size={15} />
-                      </IconButton>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="th">Fecha</th>
+                  <th className="th">Tipo</th>
+                  <th className="th">Movimiento</th>
+                  <th className="th">Cubre / nota</th>
+                  <th className="th text-right">Valor</th>
+                  <th className="th w-24 text-right">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {transfers.map((t) => (
+                  <tr key={t.id} className="hover:bg-slate-50">
+                    <td className="td whitespace-nowrap text-slate-500">{formatDate(t.date)}</td>
+                    <td className="td">
+                      <span
+                        className={`rounded px-2 py-0.5 text-xs ${
+                          t.kind === "loan" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                        }`}
+                      >
+                        {t.kind === "loan" ? "Préstamo" : "Devolución"}
+                      </span>
+                    </td>
+                    <td className="td">
+                      <span className="flex items-center gap-2">
+                        {t.from_name} <ArrowRight size={14} className="text-slate-400" /> {t.to_name}
+                      </span>
+                    </td>
+                    <td className="td text-slate-500">
+                      {t.expense_description && (
+                        <span className="mr-2 rounded bg-sky-50 px-1.5 py-0.5 text-xs text-sky-700">
+                          Su parte de: {t.expense_description}
+                        </span>
+                      )}
+                      {t.note ?? (t.expense_description ? "" : "—")}
+                    </td>
+                    <td className="td text-right font-medium">
+                      <Money value={t.amount} currency={cur} />
+                    </td>
+                    <td className="td">
+                      <div className="flex justify-end gap-1">
+                        <IconButton title="Editar" onClick={() => setForm({ transfer: t })}>
+                          <Pencil size={15} />
+                        </IconButton>
+                        <IconButton
+                          tone="danger"
+                          title="Eliminar"
+                          onClick={() => {
+                            del.setError(null);
+                            setToDelete(t);
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </IconButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

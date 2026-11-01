@@ -154,8 +154,8 @@ export function ExpenseFormModal({ open, data, expense, onClose }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Descripción" className="col-span-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Descripción" className="sm:col-span-2">
             <input
               className="input"
               value={description}
@@ -198,68 +198,70 @@ export function ExpenseFormModal({ open, data, expense, onClose }: Props) {
         <div>
           <span className="label">Se divide entre</span>
           <div className="overflow-hidden rounded-lg border border-slate-200">
-            <table className="w-full">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="th w-8" />
-                  <th className="th">Persona</th>
-                  <th className="th text-right">Disponible</th>
-                  <th className="th text-right">Su parte</th>
-                  <th className="th text-right">Queda</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {members.map((m) => {
-                  const included = participants.includes(m.id);
-                  const share = shares.find((s) => s.person_id === m.id)?.amount ?? 0;
-                  const before = availableBefore(m.id);
-                  return (
-                    <tr key={m.id} className={affected(m.id) ? "" : "text-slate-400"}>
-                      <td className="td">
-                        <input
-                          type="checkbox"
-                          checked={included}
-                          onChange={() => toggle(m.id)}
-                          className="accent-teal-600"
-                        />
-                      </td>
-                      <td className="td">
-                        {m.name}
-                        {m.id === payerId && (
-                          <span className="ml-2 rounded bg-teal-100 px-1.5 py-0.5 text-xs text-teal-700">
-                            pagó
-                          </span>
-                        )}
-                      </td>
-                      <td className="td text-right">
-                        <Money value={before} currency={cur} signed />
-                      </td>
-                      <td className="td text-right">
-                        {included && mode === "custom" ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="th w-8" />
+                    <th className="th">Persona</th>
+                    <th className="th text-right">Disponible</th>
+                    <th className="th text-right">Su parte</th>
+                    <th className="th text-right">Queda</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {members.map((m) => {
+                    const included = participants.includes(m.id);
+                    const share = shares.find((s) => s.person_id === m.id)?.amount ?? 0;
+                    const before = availableBefore(m.id);
+                    return (
+                      <tr key={m.id} className={affected(m.id) ? "" : "text-slate-400"}>
+                        <td className="td">
                           <input
-                            type="number"
-                            min="0"
-                            step="any"
-                            className="input ml-auto w-32 py-1 text-right"
-                            value={custom[m.id] ?? ""}
-                            onChange={(e) => setCustom((c) => ({ ...c, [m.id]: e.target.value }))}
+                            type="checkbox"
+                            checked={included}
+                            onChange={() => toggle(m.id)}
+                            className="accent-teal-600"
                           />
-                        ) : (
-                          <Money value={included ? share : 0} currency={cur} />
-                        )}
-                      </td>
-                      <td className="td text-right font-medium">
-                        {affected(m.id) ? (
-                          <Money value={availableAfter(m.id)} currency={cur} signed />
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="td">
+                          {m.name}
+                          {m.id === payerId && (
+                            <span className="ml-2 rounded bg-teal-100 px-1.5 py-0.5 text-xs text-teal-700">
+                              pagó
+                            </span>
+                          )}
+                        </td>
+                        <td className="td text-right">
+                          <Money value={before} currency={cur} signed />
+                        </td>
+                        <td className="td text-right">
+                          {included && mode === "custom" ? (
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              className="input ml-auto w-32 py-1 text-right"
+                              value={custom[m.id] ?? ""}
+                              onChange={(e) => setCustom((c) => ({ ...c, [m.id]: e.target.value }))}
+                            />
+                          ) : (
+                            <Money value={included ? share : 0} currency={cur} />
+                          )}
+                        </td>
+                        <td className="td text-right font-medium">
+                          {affected(m.id) ? (
+                            <Money value={availableAfter(m.id)} currency={cur} signed />
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
           {mode === "custom" && Math.abs(diff) > 0.004 && (
             <p className="mt-2 text-sm text-amber-700">

@@ -137,7 +137,7 @@ export function RouteSection({ data, onAdd }: { data: TripData; onAdd: AddItiner
 
   return (
     <section className="mb-8">
-      <div className="mb-3 flex items-center justify-between gap-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="flex items-center gap-2 font-semibold text-slate-800">
             <Route size={17} className="text-teal-600" /> Ruta
@@ -194,84 +194,86 @@ export function RouteSection({ data, onAdd }: { data: TripData; onAdd: AddItiner
           )}
 
           <div className="card overflow-hidden">
-            <table className="w-full">
-              <thead className="border-b border-slate-200 bg-slate-50">
-                <tr>
-                  <th className="th w-8">#</th>
-                  <th className="th">Ciudad</th>
-                  <th className="th">Llegada</th>
-                  <th className="th">Salida</th>
-                  <th className="th text-right">Noches</th>
-                  <th className="th">Hospedaje</th>
-                  <th className="th">Traslado de salida</th>
-                  <th className="th w-20" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 align-top">
-                {first && (
-                  <tr className="bg-slate-50/60">
-                    <td className="td" />
-                    <td className="td text-slate-500" colSpan={5}>
-                      Llegada a {first.stop.city}
-                    </td>
-                    <td className="td">
-                      <TravelCell
-                        items={analysis.arrival}
-                        missingText="Falta cómo llegar"
-                        from=""
-                        to={first.stop.city}
-                        date={first.stop.arrival_date}
-                        onAdd={onAdd}
-                      />
-                    </td>
-                    <td />
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="border-b border-slate-200 bg-slate-50">
+                  <tr>
+                    <th className="th w-8">#</th>
+                    <th className="th">Ciudad</th>
+                    <th className="th">Llegada</th>
+                    <th className="th">Salida</th>
+                    <th className="th text-right">Noches</th>
+                    <th className="th">Hospedaje</th>
+                    <th className="th">Traslado de salida</th>
+                    <th className="th w-20" />
                   </tr>
-                )}
-                {stops.map((a, i) => (
-                  <tr key={a.stop.id}>
-                    <td className="td tabular-nums text-slate-400">{i + 1}</td>
-                    <td className="td">
-                      <div className="font-medium">{a.stop.city}</div>
-                      <div className="text-xs text-slate-500">{a.stop.country}</div>
-                      {a.stop.notes && <div className="mt-1 text-xs text-slate-400">{a.stop.notes}</div>}
-                    </td>
-                    <td className="td whitespace-nowrap">{formatDate(a.stop.arrival_date)}</td>
-                    <td className="td whitespace-nowrap">{formatDate(a.stop.departure_date)}</td>
-                    <td className="td text-right tabular-nums">{a.nights.length}</td>
-                    <td className="td">
-                      <LodgingCell a={a} onAdd={onAdd} />
-                    </td>
-                    <td className="td">
-                      <TravelCell
-                        items={a.departure}
-                        missingText={a.next ? `Falta traslado a ${a.next.city}` : "Falta el regreso"}
-                        from={a.stop.city}
-                        to={a.next?.city ?? ""}
-                        date={a.stop.departure_date}
-                        onAdd={onAdd}
-                      />
-                    </td>
-                    <td className="td">
-                      <div className="flex justify-end gap-1">
-                        <IconButton title="Editar" onClick={() => setForm({ stop: a.stop })}>
-                          <Pencil size={15} />
-                        </IconButton>
-                        <IconButton
-                          tone="danger"
-                          title="Eliminar"
-                          onClick={() => {
-                            del.setError(null);
-                            setToDelete(a.stop);
-                          }}
-                        >
-                          <Trash2 size={15} />
-                        </IconButton>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 align-top">
+                  {first && (
+                    <tr className="bg-slate-50/60">
+                      <td className="td" />
+                      <td className="td text-slate-500" colSpan={5}>
+                        Llegada a {first.stop.city}
+                      </td>
+                      <td className="td">
+                        <TravelCell
+                          items={analysis.arrival}
+                          missingText="Falta cómo llegar"
+                          from=""
+                          to={first.stop.city}
+                          date={first.stop.arrival_date}
+                          onAdd={onAdd}
+                        />
+                      </td>
+                      <td />
+                    </tr>
+                  )}
+                  {stops.map((a, i) => (
+                    <tr key={a.stop.id}>
+                      <td className="td tabular-nums text-slate-400">{i + 1}</td>
+                      <td className="td">
+                        <div className="font-medium">{a.stop.city}</div>
+                        <div className="text-xs text-slate-500">{a.stop.country}</div>
+                        {a.stop.notes && <div className="mt-1 text-xs text-slate-400">{a.stop.notes}</div>}
+                      </td>
+                      <td className="td whitespace-nowrap">{formatDate(a.stop.arrival_date)}</td>
+                      <td className="td whitespace-nowrap">{formatDate(a.stop.departure_date)}</td>
+                      <td className="td text-right tabular-nums">{a.nights.length}</td>
+                      <td className="td">
+                        <LodgingCell a={a} onAdd={onAdd} />
+                      </td>
+                      <td className="td">
+                        <TravelCell
+                          items={a.departure}
+                          missingText={a.next ? `Falta traslado a ${a.next.city}` : "Falta el regreso"}
+                          from={a.stop.city}
+                          to={a.next?.city ?? ""}
+                          date={a.stop.departure_date}
+                          onAdd={onAdd}
+                        />
+                      </td>
+                      <td className="td">
+                        <div className="flex justify-end gap-1">
+                          <IconButton title="Editar" onClick={() => setForm({ stop: a.stop })}>
+                            <Pencil size={15} />
+                          </IconButton>
+                          <IconButton
+                            tone="danger"
+                            title="Eliminar"
+                            onClick={() => {
+                              del.setError(null);
+                              setToDelete(a.stop);
+                            }}
+                          >
+                            <Trash2 size={15} />
+                          </IconButton>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}

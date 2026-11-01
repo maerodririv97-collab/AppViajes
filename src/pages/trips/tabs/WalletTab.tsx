@@ -29,13 +29,13 @@ export function WalletTab({ data }: { data: TripData }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
         <p className="max-w-xl text-sm text-slate-500">
           La billetera es la plata de cada persona, aparte del presupuesto. De aquí salen los aportes al
           presupuesto y los préstamos de plata suelta entre ustedes; esos préstamos no cambian lo que a cada uno le
           queda en el presupuesto.
         </p>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           <Button variant="secondary" onClick={() => setDepositForm({})}>
             <Plus size={15} /> Agregar plata
           </Button>
@@ -54,67 +54,69 @@ export function WalletTab({ data }: { data: TripData }) {
 
       <div className="card overflow-hidden">
         <div className="border-b border-slate-200 px-4 py-3 font-medium">Billetera por persona</div>
-        <table className="w-full">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="th">Persona</th>
-              <th className="th text-right">Ingresó</th>
-              <th className="th text-right">Pasó al presupuesto</th>
-              <th className="th text-right" title="Préstamos y devoluciones que entregó">
-                Prestó / devolvió
-              </th>
-              <th className="th text-right" title="Préstamos y devoluciones que recibió">
-                Recibió
-              </th>
-              <th className="th text-right">Saldo</th>
-              <th className="th text-right">Debe / le deben</th>
-              <th className="th w-12" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {walletBalances.map((w) => {
-              const debt = roundMoney(w.net_debt, cur);
-              return (
-                <tr key={w.person_id}>
-                  <td className="td font-medium">{w.name}</td>
-                  <td className="td text-right">
-                    <Money value={w.deposits} currency={cur} />
-                  </td>
-                  <td className="td text-right">
-                    <Money value={w.contributed} currency={cur} />
-                  </td>
-                  <td className="td text-right text-slate-500">
-                    <Money value={w.given} currency={cur} />
-                  </td>
-                  <td className="td text-right text-slate-500">
-                    <Money value={w.received} currency={cur} />
-                  </td>
-                  <td className="td text-right font-semibold">
-                    <Money value={w.balance} currency={cur} signed />
-                  </td>
-                  <td className="td text-right text-xs">
-                    {debt > 0 && (
-                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">
-                        debe <Money value={debt} currency={cur} />
-                      </span>
-                    )}
-                    {debt < 0 && (
-                      <span className="rounded bg-sky-100 px-1.5 py-0.5 text-sky-700">
-                        le deben <Money value={-debt} currency={cur} />
-                      </span>
-                    )}
-                    {debt === 0 && <span className="text-slate-400">—</span>}
-                  </td>
-                  <td className="td text-right">
-                    <IconButton title="Agregar plata" onClick={() => setDepositForm({ personId: w.person_id })}>
-                      <Plus size={15} />
-                    </IconButton>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="th">Persona</th>
+                <th className="th text-right">Ingresó</th>
+                <th className="th text-right">Pasó al presupuesto</th>
+                <th className="th text-right" title="Préstamos y devoluciones que entregó">
+                  Prestó / devolvió
+                </th>
+                <th className="th text-right" title="Préstamos y devoluciones que recibió">
+                  Recibió
+                </th>
+                <th className="th text-right">Saldo</th>
+                <th className="th text-right">Debe / le deben</th>
+                <th className="th w-12" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {walletBalances.map((w) => {
+                const debt = roundMoney(w.net_debt, cur);
+                return (
+                  <tr key={w.person_id}>
+                    <td className="td font-medium">{w.name}</td>
+                    <td className="td text-right">
+                      <Money value={w.deposits} currency={cur} />
+                    </td>
+                    <td className="td text-right">
+                      <Money value={w.contributed} currency={cur} />
+                    </td>
+                    <td className="td text-right text-slate-500">
+                      <Money value={w.given} currency={cur} />
+                    </td>
+                    <td className="td text-right text-slate-500">
+                      <Money value={w.received} currency={cur} />
+                    </td>
+                    <td className="td text-right font-semibold">
+                      <Money value={w.balance} currency={cur} signed />
+                    </td>
+                    <td className="td text-right text-xs">
+                      {debt > 0 && (
+                        <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">
+                          debe <Money value={debt} currency={cur} />
+                        </span>
+                      )}
+                      {debt < 0 && (
+                        <span className="rounded bg-sky-100 px-1.5 py-0.5 text-sky-700">
+                          le deben <Money value={-debt} currency={cur} />
+                        </span>
+                      )}
+                      {debt === 0 && <span className="text-slate-400">—</span>}
+                    </td>
+                    <td className="td text-right">
+                      <IconButton title="Agregar plata" onClick={() => setDepositForm({ personId: w.person_id })}>
+                        <Plus size={15} />
+                      </IconButton>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
         <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">
           <strong>Saldo</strong> = ingresó − pasó al presupuesto − prestó/devolvió + recibió. Un saldo negativo
           indica que falta registrar plata que entró a su billetera.
@@ -162,47 +164,49 @@ export function WalletTab({ data }: { data: TripData }) {
               Registra cuánta plata tiene cada persona para el viaje.
             </p>
           ) : (
-            <table className="w-full">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="th">Fecha</th>
-                  <th className="th">Persona</th>
-                  <th className="th text-right">Valor</th>
-                  <th className="th w-24 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {deposits.map((d) => (
-                  <tr key={d.id} className="hover:bg-slate-50">
-                    <td className="td whitespace-nowrap text-slate-500">{formatDate(d.date)}</td>
-                    <td className="td">
-                      <div className="font-medium">{d.person_name}</div>
-                      {d.note && <div className="text-xs text-slate-500">{d.note}</div>}
-                    </td>
-                    <td className="td text-right font-medium">
-                      <Money value={d.amount} currency={cur} signed />
-                    </td>
-                    <td className="td w-20">
-                      <div className="flex justify-end gap-1">
-                        <IconButton title="Editar" onClick={() => setDepositForm({ deposit: d })}>
-                          <Pencil size={15} />
-                        </IconButton>
-                        <IconButton
-                          tone="danger"
-                          title="Eliminar"
-                          onClick={() => {
-                            del.setError(null);
-                            setToDelete({ type: "deposit", item: d });
-                          }}
-                        >
-                          <Trash2 size={15} />
-                        </IconButton>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="th">Fecha</th>
+                    <th className="th">Persona</th>
+                    <th className="th text-right">Valor</th>
+                    <th className="th w-24 text-right">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {deposits.map((d) => (
+                    <tr key={d.id} className="hover:bg-slate-50">
+                      <td className="td whitespace-nowrap text-slate-500">{formatDate(d.date)}</td>
+                      <td className="td">
+                        <div className="font-medium">{d.person_name}</div>
+                        {d.note && <div className="text-xs text-slate-500">{d.note}</div>}
+                      </td>
+                      <td className="td text-right font-medium">
+                        <Money value={d.amount} currency={cur} signed />
+                      </td>
+                      <td className="td w-20">
+                        <div className="flex justify-end gap-1">
+                          <IconButton title="Editar" onClick={() => setDepositForm({ deposit: d })}>
+                            <Pencil size={15} />
+                          </IconButton>
+                          <IconButton
+                            tone="danger"
+                            title="Eliminar"
+                            onClick={() => {
+                              del.setError(null);
+                              setToDelete({ type: "deposit", item: d });
+                            }}
+                          >
+                            <Trash2 size={15} />
+                          </IconButton>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
@@ -211,56 +215,58 @@ export function WalletTab({ data }: { data: TripData }) {
           {walletTransfers.length === 0 ? (
             <p className="px-4 py-6 text-sm text-slate-500">Sin préstamos de plata entre billeteras.</p>
           ) : (
-            <table className="w-full">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="th">Fecha</th>
-                  <th className="th">Movimiento</th>
-                  <th className="th text-right">Valor</th>
-                  <th className="th w-24 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {walletTransfers.map((t) => (
-                  <tr key={t.id} className="hover:bg-slate-50">
-                    <td className="td whitespace-nowrap text-slate-500">{formatDate(t.date)}</td>
-                    <td className="td">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`rounded px-1.5 py-0.5 text-xs ${
-                            t.kind === "loan" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
-                          }`}
-                        >
-                          {t.kind === "loan" ? "Préstamo" : "Devolución"}
-                        </span>
-                        {t.from_name} <ArrowRight size={13} className="text-slate-400" /> {t.to_name}
-                      </div>
-                      {t.note && <div className="mt-0.5 text-xs text-slate-500">{t.note}</div>}
-                    </td>
-                    <td className="td text-right font-medium">
-                      <Money value={t.amount} currency={cur} />
-                    </td>
-                    <td className="td w-20">
-                      <div className="flex justify-end gap-1">
-                        <IconButton title="Editar" onClick={() => setTransferForm({ transfer: t })}>
-                          <Pencil size={15} />
-                        </IconButton>
-                        <IconButton
-                          tone="danger"
-                          title="Eliminar"
-                          onClick={() => {
-                            del.setError(null);
-                            setToDelete({ type: "transfer", item: t });
-                          }}
-                        >
-                          <Trash2 size={15} />
-                        </IconButton>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="th">Fecha</th>
+                    <th className="th">Movimiento</th>
+                    <th className="th text-right">Valor</th>
+                    <th className="th w-24 text-right">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {walletTransfers.map((t) => (
+                    <tr key={t.id} className="hover:bg-slate-50">
+                      <td className="td whitespace-nowrap text-slate-500">{formatDate(t.date)}</td>
+                      <td className="td">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-xs ${
+                              t.kind === "loan" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            {t.kind === "loan" ? "Préstamo" : "Devolución"}
+                          </span>
+                          {t.from_name} <ArrowRight size={13} className="text-slate-400" /> {t.to_name}
+                        </div>
+                        {t.note && <div className="mt-0.5 text-xs text-slate-500">{t.note}</div>}
+                      </td>
+                      <td className="td text-right font-medium">
+                        <Money value={t.amount} currency={cur} />
+                      </td>
+                      <td className="td w-20">
+                        <div className="flex justify-end gap-1">
+                          <IconButton title="Editar" onClick={() => setTransferForm({ transfer: t })}>
+                            <Pencil size={15} />
+                          </IconButton>
+                          <IconButton
+                            tone="danger"
+                            title="Eliminar"
+                            onClick={() => {
+                              del.setError(null);
+                              setToDelete({ type: "transfer", item: t });
+                            }}
+                          >
+                            <Trash2 size={15} />
+                          </IconButton>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

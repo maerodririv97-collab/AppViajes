@@ -193,7 +193,7 @@ export function TransferFormModal({ open, scope, data, transfer, preset, onClose
           ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={isLoan ? "Presta" : "Devuelve"}>
             <select className="input" value={from} onChange={(e) => setFrom(Number(e.target.value))}>
               {members.map((m) => (
@@ -228,39 +228,41 @@ export function TransferFormModal({ open, scope, data, transfer, preset, onClose
               <p className="text-sm text-slate-500">{toName} no participa en ningún gasto todavía.</p>
             ) : (
               <div className="overflow-hidden rounded-lg border border-slate-200">
-                <table className="w-full">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="th w-8" />
-                      <th className="th">Gasto</th>
-                      <th className="th">Fecha</th>
-                      <th className="th text-right">Parte de {toName}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {coverable.map((c) => (
-                      <tr key={c.id} className={c.blockedBy ? "text-slate-400" : ""}>
-                        <td className="td">
-                          <input
-                            type={transfer ? "radio" : "checkbox"}
-                            className="accent-teal-600"
-                            disabled={!!c.blockedBy}
-                            checked={selectedExpenses.includes(c.id)}
-                            onChange={() => toggleExpense(c.id)}
-                          />
-                        </td>
-                        <td className="td">
-                          {c.description}
-                          {c.blockedBy && <span className="ml-2 text-xs italic">({c.blockedBy})</span>}
-                        </td>
-                        <td className="td whitespace-nowrap">{formatDate(c.date)}</td>
-                        <td className="td text-right">
-                          <Money value={c.share} currency={cur} />
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="th w-8" />
+                        <th className="th">Gasto</th>
+                        <th className="th">Fecha</th>
+                        <th className="th text-right">Parte de {toName}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {coverable.map((c) => (
+                        <tr key={c.id} className={c.blockedBy ? "text-slate-400" : ""}>
+                          <td className="td">
+                            <input
+                              type={transfer ? "radio" : "checkbox"}
+                              className="accent-teal-600"
+                              disabled={!!c.blockedBy}
+                              checked={selectedExpenses.includes(c.id)}
+                              onChange={() => toggleExpense(c.id)}
+                            />
+                          </td>
+                          <td className="td">
+                            {c.description}
+                            {c.blockedBy && <span className="ml-2 text-xs italic">({c.blockedBy})</span>}
+                          </td>
+                          <td className="td whitespace-nowrap">{formatDate(c.date)}</td>
+                          <td className="td text-right">
+                            <Money value={c.share} currency={cur} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
@@ -277,7 +279,7 @@ export function TransferFormModal({ open, scope, data, transfer, preset, onClose
           </Field>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Fecha">
             <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>

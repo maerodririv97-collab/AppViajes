@@ -105,7 +105,7 @@ export function ItineraryFormModal({ open, data, kind, item, defaults, onClose }
         </>
       }
     >
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {kind === "flight" && (
           <>
             <Field label="Aerolínea">
@@ -130,7 +130,7 @@ export function ItineraryFormModal({ open, data, kind, item, defaults, onClose }
 
         {isLodging && (
           <>
-            <Field label="Alojamiento" className="col-span-2">
+            <Field label="Alojamiento" className="sm:col-span-2">
               <input
                 className="input"
                 value={provider}
@@ -139,7 +139,7 @@ export function ItineraryFormModal({ open, data, kind, item, defaults, onClose }
                 autoFocus
               />
             </Field>
-            <Field label="Dirección" className="col-span-2">
+            <Field label="Dirección" className="sm:col-span-2">
               <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} />
             </Field>
           </>
@@ -224,7 +224,7 @@ export function ItineraryFormModal({ open, data, kind, item, defaults, onClose }
           </select>
         </Field>
 
-        <Field label="Notas (opcional)" className="col-span-2">
+        <Field label="Notas (opcional)" className="sm:col-span-2">
           <textarea
             className="input"
             rows={2}

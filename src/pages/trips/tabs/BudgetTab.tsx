@@ -76,47 +76,49 @@ export function BudgetTab({ data }: { data: TripData }) {
         {contributions.length === 0 ? (
           <p className="px-4 py-6 text-sm text-slate-500">Aún no hay aportes registrados.</p>
         ) : (
-          <table className="w-full">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="th">Fecha</th>
-                <th className="th">Persona</th>
-                <th className="th">Nota</th>
-                <th className="th text-right">Valor</th>
-                <th className="th w-20" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {contributions.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50">
-                  <td className="td whitespace-nowrap text-slate-500">{formatDate(c.date)}</td>
-                  <td className="td font-medium">{c.person_name}</td>
-                  <td className="td text-slate-500">{c.note ?? "—"}</td>
-                  <td className={`td text-right font-medium ${c.amount >= 0 ? "text-teal-700" : ""}`}>
-                    {c.amount >= 0 ? "+" : ""}
-                    <Money value={c.amount} currency={cur} signed />
-                  </td>
-                  <td className="td">
-                    <div className="flex justify-end gap-1">
-                      <IconButton title="Editar" onClick={() => setForm({ mode: "edit", contribution: c })}>
-                        <Pencil size={15} />
-                      </IconButton>
-                      <IconButton
-                        tone="danger"
-                        title="Eliminar"
-                        onClick={() => {
-                          del.setError(null);
-                          setToDelete(c);
-                        }}
-                      >
-                        <Trash2 size={15} />
-                      </IconButton>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="th">Fecha</th>
+                  <th className="th">Persona</th>
+                  <th className="th">Nota</th>
+                  <th className="th text-right">Valor</th>
+                  <th className="th w-20" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {contributions.map((c) => (
+                  <tr key={c.id} className="hover:bg-slate-50">
+                    <td className="td whitespace-nowrap text-slate-500">{formatDate(c.date)}</td>
+                    <td className="td font-medium">{c.person_name}</td>
+                    <td className="td text-slate-500">{c.note ?? "—"}</td>
+                    <td className={`td text-right font-medium ${c.amount >= 0 ? "text-teal-700" : ""}`}>
+                      {c.amount >= 0 ? "+" : ""}
+                      <Money value={c.amount} currency={cur} signed />
+                    </td>
+                    <td className="td">
+                      <div className="flex justify-end gap-1">
+                        <IconButton title="Editar" onClick={() => setForm({ mode: "edit", contribution: c })}>
+                          <Pencil size={15} />
+                        </IconButton>
+                        <IconButton
+                          tone="danger"
+                          title="Eliminar"
+                          onClick={() => {
+                            del.setError(null);
+                            setToDelete(c);
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </IconButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
