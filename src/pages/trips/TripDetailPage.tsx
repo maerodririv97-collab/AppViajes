@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CalendarDays, MapPin, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, Copy, MapPin, Pencil, Trash2 } from "lucide-react";
 import { PageHeader } from "../../components/layout/Layout";
 import { Button } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
@@ -83,6 +83,7 @@ export function TripDetailPage() {
   const [tab, setTab] = useState<TabKey>("summary");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const del = useMutation();
   const navigate = useNavigate();
 
@@ -119,6 +120,18 @@ export function TripDetailPage() {
               </span>
             )}
             <span>Moneda: {trip.currency}</span>
+            <button
+              onClick={async () => {
+                await navigator.clipboard.writeText(trip.invite_code);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              }}
+              title="Compártelo con tus compañeros para que se unan al viaje"
+              className="flex items-center gap-1 hover:text-teal-600"
+            >
+              Código: <span className="font-mono font-medium text-slate-700">{trip.invite_code}</span>
+              {copied ? <Check size={13} className="text-teal-600" /> : <Copy size={13} />}
+            </button>
           </div>
         }
         actions={

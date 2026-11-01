@@ -14,6 +14,8 @@ export interface Trip {
   end_date: string | null;
   currency: string;
   notes: string | null;
+  /** Código que comparten los compañeros para unirse al viaje (join_trip). */
+  invite_code: string;
   created_at: string;
 }
 

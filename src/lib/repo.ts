@@ -1,13 +1,12 @@
-// Acceso a datos: todas las consultas SQL de la app viven aquí.
-// Nota: tauri-plugin-sql usa un pool de conexiones, así que BEGIN/COMMIT en llamadas
-// separadas no garantiza la misma conexión. Las escrituras de varias tablas se hacen en
-// orden seguro y, si falla un paso, se deshace a mano lo ya insertado.
-import { getDb } from "./db";
+// Acceso a datos: todas las consultas a Supabase viven aquí. Las lecturas con agregados y
+// las escrituras de varias tablas son funciones de Postgres (supabase/migrations/*_rpc.sql)
+// para que corran en una sola consulta / transacción; el resto usa la API de tablas.
+// El acceso por viaje lo controlan las políticas RLS, no este módulo.
+import { supabase, unwrap } from "./supabase";
 import { roundMoney } from "./format";
 import type {
   Contribution,
   Debt,
-  Expense,
   ExpenseShare,
   ExpenseWithShares,
   ItineraryItem,
@@ -27,6 +26,18 @@ import type {
 
 const nullIfEmpty = (v: string | null | undefined) => (v && v.trim() ? v.trim() : null);
 
+const byName = (a: string, b: string) => a.localeCompare(b, "es", { sensitivity: "base" });
+
+/** Cuenta filas de `table` que cumplen `filter` (sin traerlas). */
+async function count(
+  table: string,
+  filter: (q: ReturnType<ReturnType<typeof supabase.from>["select"]>) => typeof q,
+): Promise<number> {
+  const { count: n, error } = await filter(supabase.from(table).select("*", { count: "exact", head: true }));
+  if (error) throw new Error(error.message);
+  return n ?? 0;
+}
+
 // ─── Personas ──────────────────────────────────────────────────────────────
 
 export interface PersonInput {
@@ -36,41 +47,28 @@ export interface PersonInput {
 }
 
 export async function listPeople(): Promise<(Person & { trip_count: number })[]> {
-  const db = await getDb();
-  return db.select(
-    `SELECT p.*, (SELECT COUNT(*) FROM trip_members m WHERE m.person_id = p.id) AS trip_count
-     FROM people p ORDER BY p.name COLLATE NOCASE`,
-  );
+  return unwrap(await supabase.rpc("list_people"));
 }
 
+const personRow = (input: PersonInput) => ({
+  name: input.name.trim(),
+  phone: nullIfEmpty(input.phone),
+  notes: nullIfEmpty(input.notes),
+});
+
 export async function createPerson(input: PersonInput): Promise<number> {
-  const db = await getDb();
-  const res = await db.execute("INSERT INTO people (name, phone, notes) VALUES ($1, $2, $3)", [
-    input.name.trim(),
-    nullIfEmpty(input.phone),
-    nullIfEmpty(input.notes),
-  ]);
-  return res.lastInsertId as number;
+  const { id } = unwrap(await supabase.from("people").insert(personRow(input)).select("id").single());
+  return id;
 }
 
 export async function updatePerson(id: number, input: PersonInput): Promise<void> {
-  const db = await getDb();
-  await db.execute("UPDATE people SET name = $1, phone = $2, notes = $3 WHERE id = $4", [
-    input.name.trim(),
-    nullIfEmpty(input.phone),
-    nullIfEmpty(input.notes),
-    id,
-  ]);
+  unwrap(await supabase.from("people").update(personRow(input)).eq("id", id));
 }
 
 export async function deletePerson(id: number): Promise<void> {
-  const db = await getDb();
-  const [{ n }] = await db.select<{ n: number }[]>(
-    "SELECT COUNT(*) AS n FROM trip_members WHERE person_id = $1",
-    [id],
-  );
+  const n = await count("trip_members", (q) => q.eq("person_id", id));
   if (n > 0) throw new Error("La persona está asignada a uno o más viajes. Quítala de ellos primero.");
-  await db.execute("DELETE FROM people WHERE id = $1", [id]);
+  unwrap(await supabase.from("people").delete().eq("id", id));
 }
 
 // ─── Viajes ────────────────────────────────────────────────────────────────
@@ -85,113 +83,62 @@ export interface TripInput {
 }
 
 export async function listTrips(): Promise<TripListItem[]> {
-  const db = await getDb();
-  return db.select(
-    `SELECT t.*,
-       (SELECT COUNT(*) FROM trip_members m WHERE m.trip_id = t.id) AS member_count,
-       COALESCE((SELECT SUM(amount) FROM contributions c WHERE c.trip_id = t.id), 0) AS total_budget,
-       COALESCE((SELECT SUM(amount) FROM expenses e WHERE e.trip_id = t.id), 0) AS total_spent
-     FROM trips t
-     ORDER BY COALESCE(t.start_date, t.created_at) DESC, t.id DESC`,
-  );
+  return unwrap(await supabase.rpc("list_trips"));
 }
 
 export async function getTrip(id: number): Promise<Trip | null> {
-  const db = await getDb();
-  const rows = await db.select<Trip[]>("SELECT * FROM trips WHERE id = $1", [id]);
-  return rows[0] ?? null;
+  return unwrap(await supabase.from("trips").select("*").eq("id", id).maybeSingle());
 }
 
+const tripRow = (input: TripInput) => ({
+  name: input.name.trim(),
+  destination: nullIfEmpty(input.destination),
+  start_date: nullIfEmpty(input.start_date),
+  end_date: nullIfEmpty(input.end_date),
+  currency: input.currency,
+  notes: nullIfEmpty(input.notes),
+});
+
 export async function createTrip(input: TripInput, memberIds: number[]): Promise<number> {
-  const db = await getDb();
-  const res = await db.execute(
-    `INSERT INTO trips (name, destination, start_date, end_date, currency, notes)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [
-      input.name.trim(),
-      nullIfEmpty(input.destination),
-      nullIfEmpty(input.start_date),
-      nullIfEmpty(input.end_date),
-      input.currency,
-      nullIfEmpty(input.notes),
-    ],
-  );
-  const tripId = res.lastInsertId as number;
+  const { id: tripId } = unwrap(await supabase.from("trips").insert(tripRow(input)).select("id").single());
   for (const personId of memberIds) await addMember(tripId, personId);
   return tripId;
 }
 
 export async function updateTrip(id: number, input: TripInput): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    `UPDATE trips SET name = $1, destination = $2, start_date = $3, end_date = $4,
-       currency = $5, notes = $6 WHERE id = $7`,
-    [
-      input.name.trim(),
-      nullIfEmpty(input.destination),
-      nullIfEmpty(input.start_date),
-      nullIfEmpty(input.end_date),
-      input.currency,
-      nullIfEmpty(input.notes),
-      id,
-    ],
-  );
+  unwrap(await supabase.from("trips").update(tripRow(input)).eq("id", id));
 }
 
+/** Borra el viaje; aportes, gastos, préstamos, itinerario y ruta se van en cascada. */
 export async function deleteTrip(id: number): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    "DELETE FROM expense_shares WHERE expense_id IN (SELECT id FROM expenses WHERE trip_id = $1)",
-    [id],
-  );
-  await db.execute("DELETE FROM expenses WHERE trip_id = $1", [id]);
-  await db.execute("DELETE FROM transfers WHERE trip_id = $1", [id]);
-  await db.execute("DELETE FROM contributions WHERE trip_id = $1", [id]);
-  await db.execute("DELETE FROM wallet_deposits WHERE trip_id = $1", [id]);
-  await db.execute("DELETE FROM itinerary_items WHERE trip_id = $1", [id]);
-  await db.execute("DELETE FROM route_stops WHERE trip_id = $1", [id]);
-  await db.execute("DELETE FROM trip_members WHERE trip_id = $1", [id]);
-  await db.execute("DELETE FROM trips WHERE id = $1", [id]);
+  const deleted = unwrap(await supabase.from("trips").delete().eq("id", id).select("id"));
+  if (deleted.length === 0) throw new Error("Solo quien creó el viaje puede eliminarlo.");
+}
+
+/** Da acceso al viaje del código a la cuenta actual. Devuelve el id del viaje. */
+export async function joinTrip(code: string): Promise<number> {
+  return unwrap(await supabase.rpc("join_trip", { p_code: code }));
 }
 
 // ─── Integrantes ───────────────────────────────────────────────────────────
 
 export async function listMembers(tripId: number): Promise<Person[]> {
-  const db = await getDb();
-  return db.select(
-    `SELECT p.* FROM trip_members m JOIN people p ON p.id = m.person_id
-     WHERE m.trip_id = $1 ORDER BY p.name COLLATE NOCASE`,
-    [tripId],
-  );
+  const rows = unwrap(
+    await supabase.from("trip_members").select("person:people(*)").eq("trip_id", tripId),
+  ) as unknown as { person: Person }[];
+  return rows.map((r) => r.person).sort((a, b) => byName(a.name, b.name));
 }
 
 export async function addMember(tripId: number, personId: number): Promise<void> {
-  const db = await getDb();
-  await db.execute("INSERT OR IGNORE INTO trip_members (trip_id, person_id) VALUES ($1, $2)", [
-    tripId,
-    personId,
-  ]);
+  unwrap(
+    await supabase
+      .from("trip_members")
+      .upsert({ trip_id: tripId, person_id: personId }, { onConflict: "trip_id,person_id", ignoreDuplicates: true }),
+  );
 }
 
 export async function removeMember(tripId: number, personId: number): Promise<void> {
-  const db = await getDb();
-  const [{ n }] = await db.select<{ n: number }[]>(
-    `SELECT
-       (SELECT COUNT(*) FROM contributions WHERE trip_id = $1 AND person_id = $2)
-     + (SELECT COUNT(*) FROM expense_shares s JOIN expenses e ON e.id = s.expense_id
-          WHERE e.trip_id = $1 AND s.person_id = $2)
-     + (SELECT COUNT(*) FROM transfers WHERE trip_id = $1 AND (from_person_id = $2 OR to_person_id = $2))
-     + (SELECT COUNT(*) FROM expenses WHERE trip_id = $1 AND paid_by_person_id = $2)
-     + (SELECT COUNT(*) FROM wallet_deposits WHERE trip_id = $1 AND person_id = $2)
-     AS n`,
-    [tripId, personId],
-  );
-  if (n > 0) {
-    throw new Error(
-      "La persona tiene movimientos de billetera, aportes, gastos o préstamos en este viaje. Elimina esos movimientos antes de quitarla.",
-    );
-  }
-  await db.execute("DELETE FROM trip_members WHERE trip_id = $1 AND person_id = $2", [tripId, personId]);
+  unwrap(await supabase.rpc("remove_trip_member", { p_trip_id: tripId, p_person_id: personId }));
 }
 
 // ─── Aportes (presupuesto) ─────────────────────────────────────────────────
@@ -203,34 +150,40 @@ export interface ContributionInput {
   note?: string | null;
 }
 
-export async function listContributions(tripId: number): Promise<Contribution[]> {
-  const db = await getDb();
-  return db.select(
-    `SELECT c.*, p.name AS person_name FROM contributions c JOIN people p ON p.id = c.person_id
-     WHERE c.trip_id = $1 ORDER BY c.date DESC, c.id DESC`,
-    [tripId],
-  );
+/** Aplana `person: { name }` del embed de PostgREST a `person_name`. */
+function withPersonName<T extends { person: { name: string } | null }>(rows: T[]) {
+  return rows.map(({ person, ...rest }) => ({ ...rest, person_name: person?.name ?? "" }));
 }
 
-export async function createContribution(tripId: number, input: ContributionInput): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    "INSERT INTO contributions (trip_id, person_id, amount, date, note) VALUES ($1, $2, $3, $4, $5)",
-    [tripId, input.person_id, input.amount, input.date, nullIfEmpty(input.note)],
+export async function listContributions(tripId: number): Promise<Contribution[]> {
+  const rows = unwrap(
+    await supabase
+      .from("contributions")
+      .select("*, person:people(name)")
+      .eq("trip_id", tripId)
+      .order("date", { ascending: false })
+      .order("id", { ascending: false }),
   );
+  return withPersonName(rows) as Contribution[];
+}
+
+const contributionRow = (input: ContributionInput) => ({
+  person_id: input.person_id,
+  amount: input.amount,
+  date: input.date,
+  note: nullIfEmpty(input.note),
+});
+
+export async function createContribution(tripId: number, input: ContributionInput): Promise<void> {
+  unwrap(await supabase.from("contributions").insert({ trip_id: tripId, ...contributionRow(input) }));
 }
 
 export async function updateContribution(id: number, input: ContributionInput): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    "UPDATE contributions SET person_id = $1, amount = $2, date = $3, note = $4 WHERE id = $5",
-    [input.person_id, input.amount, input.date, nullIfEmpty(input.note), id],
-  );
+  unwrap(await supabase.from("contributions").update(contributionRow(input)).eq("id", id));
 }
 
 export async function deleteContribution(id: number): Promise<void> {
-  const db = await getDb();
-  await db.execute("DELETE FROM contributions WHERE id = $1", [id]);
+  unwrap(await supabase.from("contributions").delete().eq("id", id));
 }
 
 // ─── Gastos ────────────────────────────────────────────────────────────────
@@ -246,108 +199,56 @@ export interface ExpenseInput {
 }
 
 export async function listExpenses(tripId: number): Promise<ExpenseWithShares[]> {
-  const db = await getDb();
-  const expenses = await db.select<Expense[]>(
-    `SELECT e.*, p.name AS paid_by_name FROM expenses e
-     LEFT JOIN people p ON p.id = e.paid_by_person_id
-     WHERE e.trip_id = $1 ORDER BY e.date DESC, e.id DESC`,
-    [tripId],
+  const rows = unwrap(
+    await supabase
+      .from("expenses")
+      .select(
+        `*, paid_by:people!expenses_paid_by_person_id_fkey(name),
+         shares:expense_shares(expense_id, person_id, amount, person:people(name))`,
+      )
+      .eq("trip_id", tripId)
+      .order("date", { ascending: false })
+      .order("id", { ascending: false }),
   );
-  const shares = await db.select<ExpenseShare[]>(
-    `SELECT s.expense_id, s.person_id, p.name AS person_name, s.amount
-     FROM expense_shares s
-     JOIN expenses e ON e.id = s.expense_id
-     JOIN people p ON p.id = s.person_id
-     WHERE e.trip_id = $1 ORDER BY p.name COLLATE NOCASE`,
-    [tripId],
-  );
-  const byExpense = new Map<number, ExpenseShare[]>();
-  for (const s of shares) {
-    const list = byExpense.get(s.expense_id) ?? [];
-    list.push(s);
-    byExpense.set(s.expense_id, list);
-  }
-  return expenses.map((e) => ({ ...e, shares: byExpense.get(e.id) ?? [] }));
+  return rows.map(({ paid_by, shares, ...e }) => ({
+    ...e,
+    paid_by_name: paid_by?.name ?? null,
+    shares: (withPersonName(shares) as ExpenseShare[]).sort((a, b) => byName(a.person_name, b.person_name)),
+  })) as ExpenseWithShares[];
 }
 
-async function insertShares(expenseId: number, shares: ExpenseInput["shares"]): Promise<void> {
-  if (shares.length === 0) return;
-  const db = await getDb();
-  const values = shares.map((_, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(", ");
-  const params: (number | string)[] = [expenseId];
-  for (const s of shares) params.push(s.person_id, s.amount);
-  await db.execute(`INSERT INTO expense_shares (expense_id, person_id, amount) VALUES ${values}`, params);
+async function saveExpense(tripId: number | null, expenseId: number | null, input: ExpenseInput) {
+  unwrap(
+    await supabase.rpc("save_expense", {
+      p_trip_id: tripId,
+      p_expense_id: expenseId,
+      p_category: input.category,
+      p_description: input.description.trim(),
+      p_amount: input.amount,
+      p_date: input.date,
+      p_notes: nullIfEmpty(input.notes),
+      p_paid_by: input.paid_by_person_id,
+      p_shares: input.shares,
+    }),
+  );
 }
 
 export async function createExpense(tripId: number, input: ExpenseInput): Promise<void> {
-  const db = await getDb();
-  const res = await db.execute(
-    `INSERT INTO expenses (trip_id, category, description, amount, date, notes, paid_by_person_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [
-      tripId,
-      input.category,
-      input.description.trim(),
-      input.amount,
-      input.date,
-      nullIfEmpty(input.notes),
-      input.paid_by_person_id,
-    ],
-  );
-  const expenseId = res.lastInsertId as number;
-  try {
-    await insertShares(expenseId, input.shares);
-  } catch (err) {
-    await db.execute("DELETE FROM expenses WHERE id = $1", [expenseId]);
-    throw err;
-  }
+  await saveExpense(tripId, null, input);
 }
 
+/** Actualiza el gasto y sus partes; los préstamos que lo cubren siguen la nueva parte del deudor. */
 export async function updateExpense(id: number, input: ExpenseInput): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    `UPDATE expenses SET category = $1, description = $2, amount = $3, date = $4, notes = $5,
-       paid_by_person_id = $6 WHERE id = $7`,
-    [
-      input.category,
-      input.description.trim(),
-      input.amount,
-      input.date,
-      nullIfEmpty(input.notes),
-      input.paid_by_person_id,
-      id,
-    ],
-  );
-  await db.execute("DELETE FROM expense_shares WHERE expense_id = $1", [id]);
-  await insertShares(id, input.shares);
-  // Los préstamos que cubren este gasto siguen la nueva parte del deudor; si ya no participa,
-  // el préstamo se conserva como monto libre.
-  await db.execute(
-    `UPDATE transfers SET amount = (SELECT s.amount FROM expense_shares s
-        WHERE s.expense_id = transfers.expense_id AND s.person_id = transfers.to_person_id)
-     WHERE expense_id = $1 AND EXISTS (SELECT 1 FROM expense_shares s
-        WHERE s.expense_id = transfers.expense_id AND s.person_id = transfers.to_person_id)`,
-    [id],
-  );
-  await db.execute(
-    `UPDATE transfers SET expense_id = NULL
-     WHERE expense_id = $1 AND NOT EXISTS (SELECT 1 FROM expense_shares s
-        WHERE s.expense_id = transfers.expense_id AND s.person_id = transfers.to_person_id)`,
-    [id],
-  );
+  await saveExpense(null, id, input);
 }
 
 export async function deleteExpense(id: number): Promise<void> {
-  const db = await getDb();
-  const [{ n }] = await db.select<{ n: number }[]>(
-    "SELECT COUNT(*) AS n FROM transfers WHERE expense_id = $1",
-    [id],
-  );
+  const n = await count("transfers", (q) => q.eq("expense_id", id));
   if (n > 0) {
     throw new Error("Este gasto tiene préstamos que lo cubren. Elimínalos primero en la pestaña Préstamos.");
   }
-  await db.execute("DELETE FROM expense_shares WHERE expense_id = $1", [id]);
-  await db.execute("DELETE FROM expenses WHERE id = $1", [id]);
+  // Las partes se borran en cascada.
+  unwrap(await supabase.from("expenses").delete().eq("id", id));
 }
 
 // ─── Itinerario ────────────────────────────────────────────────────────────
@@ -367,50 +268,35 @@ export interface ItineraryInput {
 }
 
 export async function listItinerary(tripId: number): Promise<ItineraryItem[]> {
-  const db = await getDb();
-  return db.select(
-    "SELECT * FROM itinerary_items WHERE trip_id = $1 ORDER BY start_at, id",
-    [tripId],
+  return unwrap(
+    await supabase.from("itinerary_items").select("*").eq("trip_id", tripId).order("start_at").order("id"),
   );
 }
 
-const itineraryParams = (input: ItineraryInput) => [
-  input.kind,
-  input.status,
-  nullIfEmpty(input.provider),
-  nullIfEmpty(input.reference),
-  nullIfEmpty(input.origin),
-  nullIfEmpty(input.destination),
-  nullIfEmpty(input.address),
-  input.start_at,
-  nullIfEmpty(input.end_at),
-  nullIfEmpty(input.confirmation_code),
-  nullIfEmpty(input.notes),
-];
+const itineraryRow = (input: ItineraryInput) => ({
+  kind: input.kind,
+  status: input.status,
+  provider: nullIfEmpty(input.provider),
+  reference: nullIfEmpty(input.reference),
+  origin: nullIfEmpty(input.origin),
+  destination: nullIfEmpty(input.destination),
+  address: nullIfEmpty(input.address),
+  start_at: input.start_at,
+  end_at: nullIfEmpty(input.end_at),
+  confirmation_code: nullIfEmpty(input.confirmation_code),
+  notes: nullIfEmpty(input.notes),
+});
 
 export async function createItineraryItem(tripId: number, input: ItineraryInput): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    `INSERT INTO itinerary_items (kind, status, provider, reference, origin, destination, address,
-       start_at, end_at, confirmation_code, notes, trip_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-    [...itineraryParams(input), tripId],
-  );
+  unwrap(await supabase.from("itinerary_items").insert({ trip_id: tripId, ...itineraryRow(input) }));
 }
 
 export async function updateItineraryItem(id: number, input: ItineraryInput): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    `UPDATE itinerary_items SET kind = $1, status = $2, provider = $3, reference = $4, origin = $5,
-       destination = $6, address = $7, start_at = $8, end_at = $9, confirmation_code = $10, notes = $11
-     WHERE id = $12`,
-    [...itineraryParams(input), id],
-  );
+  unwrap(await supabase.from("itinerary_items").update(itineraryRow(input)).eq("id", id));
 }
 
 export async function deleteItineraryItem(id: number): Promise<void> {
-  const db = await getDb();
-  await db.execute("DELETE FROM itinerary_items WHERE id = $1", [id]);
+  unwrap(await supabase.from("itinerary_items").delete().eq("id", id));
 }
 
 // ─── Ruta ──────────────────────────────────────────────────────────────────
@@ -424,40 +310,40 @@ export interface RouteStopInput {
 }
 
 export async function listRouteStops(tripId: number): Promise<RouteStop[]> {
-  const db = await getDb();
-  return db.select(
-    "SELECT * FROM route_stops WHERE trip_id = $1 ORDER BY arrival_date, departure_date, id",
-    [tripId],
+  return unwrap(
+    await supabase
+      .from("route_stops")
+      .select("*")
+      .eq("trip_id", tripId)
+      .order("arrival_date")
+      .order("departure_date")
+      .order("id"),
   );
 }
 
+const routeStopRow = (input: RouteStopInput) => ({
+  country: input.country.trim(),
+  city: input.city.trim(),
+  arrival_date: input.arrival_date,
+  departure_date: input.departure_date,
+  notes: nullIfEmpty(input.notes),
+});
+
 export async function createRouteStop(tripId: number, input: RouteStopInput): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    `INSERT INTO route_stops (trip_id, country, city, arrival_date, departure_date, notes)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [tripId, input.country.trim(), input.city.trim(), input.arrival_date, input.departure_date, nullIfEmpty(input.notes)],
-  );
+  unwrap(await supabase.from("route_stops").insert({ trip_id: tripId, ...routeStopRow(input) }));
 }
 
 export async function updateRouteStop(id: number, input: RouteStopInput): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    `UPDATE route_stops SET country = $1, city = $2, arrival_date = $3, departure_date = $4, notes = $5
-     WHERE id = $6`,
-    [input.country.trim(), input.city.trim(), input.arrival_date, input.departure_date, nullIfEmpty(input.notes), id],
-  );
+  unwrap(await supabase.from("route_stops").update(routeStopRow(input)).eq("id", id));
 }
 
 export async function deleteRouteStop(id: number): Promise<void> {
-  const db = await getDb();
-  await db.execute("DELETE FROM route_stops WHERE id = $1", [id]);
+  unwrap(await supabase.from("route_stops").delete().eq("id", id));
 }
 
 /** Ajusta inicio y fin del viaje a la primera llegada y la última salida de la ruta. */
 export async function setTripDates(id: number, startDate: string, endDate: string): Promise<void> {
-  const db = await getDb();
-  await db.execute("UPDATE trips SET start_date = $1, end_date = $2 WHERE id = $3", [startDate, endDate, id]);
+  unwrap(await supabase.from("trips").update({ start_date: startDate, end_date: endDate }).eq("id", id));
 }
 
 // ─── Préstamos / devoluciones ──────────────────────────────────────────────
@@ -474,87 +360,53 @@ export interface TransferInput {
 }
 
 export async function listTransfers(tripId: number): Promise<Transfer[]> {
-  const db = await getDb();
-  return db.select(
-    `SELECT t.*, pf.name AS from_name, pt.name AS to_name, e.description AS expense_description
-     FROM transfers t
-     JOIN people pf ON pf.id = t.from_person_id
-     JOIN people pt ON pt.id = t.to_person_id
-     LEFT JOIN expenses e ON e.id = t.expense_id
-     WHERE t.trip_id = $1 ORDER BY t.date DESC, t.id DESC`,
-    [tripId],
+  const rows = unwrap(
+    await supabase
+      .from("transfers")
+      .select(
+        `*, from:people!transfers_from_person_id_fkey(name), to:people!transfers_to_person_id_fkey(name),
+         expense:expenses!transfers_expense_id_fkey(description)`,
+      )
+      .eq("trip_id", tripId)
+      .order("date", { ascending: false })
+      .order("id", { ascending: false }),
   );
+  return rows.map(({ from, to, expense, ...t }) => ({
+    ...t,
+    from_name: from?.name ?? "",
+    to_name: to?.name ?? "",
+    expense_description: expense?.description ?? null,
+  })) as Transfer[];
 }
 
+const transferRow = (input: TransferInput) => ({
+  from_person_id: input.from_person_id,
+  to_person_id: input.to_person_id,
+  kind: input.kind,
+  amount: input.amount,
+  date: input.date,
+  note: nullIfEmpty(input.note),
+  expense_id: input.expense_id ?? null,
+  scope: input.scope,
+});
+
 export async function createTransfer(tripId: number, input: TransferInput): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    `INSERT INTO transfers (trip_id, from_person_id, to_person_id, kind, amount, date, note, expense_id, scope)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-    [
-      tripId,
-      input.from_person_id,
-      input.to_person_id,
-      input.kind,
-      input.amount,
-      input.date,
-      nullIfEmpty(input.note),
-      input.expense_id ?? null,
-      input.scope,
-    ],
-  );
+  unwrap(await supabase.from("transfers").insert({ trip_id: tripId, ...transferRow(input) }));
 }
 
 export async function updateTransfer(id: number, input: TransferInput): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    `UPDATE transfers SET from_person_id = $1, to_person_id = $2, kind = $3, amount = $4,
-       date = $5, note = $6, expense_id = $7, scope = $8 WHERE id = $9`,
-    [
-      input.from_person_id,
-      input.to_person_id,
-      input.kind,
-      input.amount,
-      input.date,
-      nullIfEmpty(input.note),
-      input.expense_id ?? null,
-      input.scope,
-      id,
-    ],
-  );
+  unwrap(await supabase.from("transfers").update(transferRow(input)).eq("id", id));
 }
 
 export async function deleteTransfer(id: number): Promise<void> {
-  const db = await getDb();
-  await db.execute("DELETE FROM transfers WHERE id = $1", [id]);
+  unwrap(await supabase.from("transfers").delete().eq("id", id));
 }
 
 // ─── Balances ──────────────────────────────────────────────────────────────
 
 export async function getBalances(tripId: number): Promise<MemberBalance[]> {
-  const db = await getDb();
-  const rows = await db.select<Omit<MemberBalance, "available" | "net_debt">[]>(
-    `SELECT p.id AS person_id, p.name,
-       COALESCE((SELECT SUM(c.amount) FROM contributions c
-                 WHERE c.trip_id = m.trip_id AND c.person_id = p.id), 0) AS budget,
-       COALESCE((SELECT SUM(s.amount) FROM expense_shares s JOIN expenses e ON e.id = s.expense_id
-                 WHERE e.trip_id = m.trip_id AND s.person_id = p.id), 0) AS spent,
-       COALESCE((SELECT SUM(t.amount) FROM transfers t
-                 WHERE t.trip_id = m.trip_id AND t.scope = 'budget'
-                   AND t.from_person_id = p.id), 0) AS transfers_out,
-       COALESCE((SELECT SUM(t.amount) FROM transfers t
-                 WHERE t.trip_id = m.trip_id AND t.scope = 'budget'
-                   AND t.to_person_id = p.id), 0) AS transfers_in,
-       COALESCE((SELECT SUM(s.amount) FROM expense_shares s JOIN expenses e ON e.id = s.expense_id
-                 WHERE e.trip_id = m.trip_id AND e.paid_by_person_id = p.id
-                   AND s.person_id <> p.id), 0) AS covered_out,
-       COALESCE((SELECT SUM(s.amount) FROM expense_shares s JOIN expenses e ON e.id = s.expense_id
-                 WHERE e.trip_id = m.trip_id AND s.person_id = p.id
-                   AND e.paid_by_person_id IS NOT NULL AND e.paid_by_person_id <> p.id), 0) AS covered_in
-     FROM trip_members m JOIN people p ON p.id = m.person_id
-     WHERE m.trip_id = $1
-     ORDER BY p.name COLLATE NOCASE`,
-    [tripId],
+  const rows: Omit<MemberBalance, "available" | "net_debt">[] = unwrap(
+    await supabase.rpc("trip_balances", { p_trip_id: tripId }),
   );
   return rows.map((r) => ({
     ...r,
@@ -573,53 +425,39 @@ export interface WalletDepositInput {
 }
 
 export async function listWalletDeposits(tripId: number): Promise<WalletDeposit[]> {
-  const db = await getDb();
-  return db.select(
-    `SELECT w.*, p.name AS person_name FROM wallet_deposits w JOIN people p ON p.id = w.person_id
-     WHERE w.trip_id = $1 ORDER BY w.date DESC, w.id DESC`,
-    [tripId],
+  const rows = unwrap(
+    await supabase
+      .from("wallet_deposits")
+      .select("*, person:people(name)")
+      .eq("trip_id", tripId)
+      .order("date", { ascending: false })
+      .order("id", { ascending: false }),
   );
+  return withPersonName(rows) as WalletDeposit[];
 }
 
+const walletDepositRow = (input: WalletDepositInput) => ({
+  person_id: input.person_id,
+  amount: input.amount,
+  date: input.date,
+  note: nullIfEmpty(input.note),
+});
+
 export async function createWalletDeposit(tripId: number, input: WalletDepositInput): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    "INSERT INTO wallet_deposits (trip_id, person_id, amount, date, note) VALUES ($1, $2, $3, $4, $5)",
-    [tripId, input.person_id, input.amount, input.date, nullIfEmpty(input.note)],
-  );
+  unwrap(await supabase.from("wallet_deposits").insert({ trip_id: tripId, ...walletDepositRow(input) }));
 }
 
 export async function updateWalletDeposit(id: number, input: WalletDepositInput): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    "UPDATE wallet_deposits SET person_id = $1, amount = $2, date = $3, note = $4 WHERE id = $5",
-    [input.person_id, input.amount, input.date, nullIfEmpty(input.note), id],
-  );
+  unwrap(await supabase.from("wallet_deposits").update(walletDepositRow(input)).eq("id", id));
 }
 
 export async function deleteWalletDeposit(id: number): Promise<void> {
-  const db = await getDb();
-  await db.execute("DELETE FROM wallet_deposits WHERE id = $1", [id]);
+  unwrap(await supabase.from("wallet_deposits").delete().eq("id", id));
 }
 
 export async function getWalletBalances(tripId: number): Promise<WalletBalance[]> {
-  const db = await getDb();
-  const rows = await db.select<Omit<WalletBalance, "balance" | "net_debt">[]>(
-    `SELECT p.id AS person_id, p.name,
-       COALESCE((SELECT SUM(w.amount) FROM wallet_deposits w
-                 WHERE w.trip_id = m.trip_id AND w.person_id = p.id), 0) AS deposits,
-       COALESCE((SELECT SUM(c.amount) FROM contributions c
-                 WHERE c.trip_id = m.trip_id AND c.person_id = p.id), 0) AS contributed,
-       COALESCE((SELECT SUM(t.amount) FROM transfers t
-                 WHERE t.trip_id = m.trip_id AND t.scope = 'wallet'
-                   AND t.from_person_id = p.id), 0) AS given,
-       COALESCE((SELECT SUM(t.amount) FROM transfers t
-                 WHERE t.trip_id = m.trip_id AND t.scope = 'wallet'
-                   AND t.to_person_id = p.id), 0) AS received
-     FROM trip_members m JOIN people p ON p.id = m.person_id
-     WHERE m.trip_id = $1
-     ORDER BY p.name COLLATE NOCASE`,
-    [tripId],
+  const rows: Omit<WalletBalance, "balance" | "net_debt">[] = unwrap(
+    await supabase.rpc("wallet_balances", { p_trip_id: tripId }),
   );
   return rows.map((r) => ({
     ...r,

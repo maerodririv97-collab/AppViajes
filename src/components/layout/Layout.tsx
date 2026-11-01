@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Luggage, Plane, Users } from "lucide-react";
+import { LogOut, Luggage, Plane, Users } from "lucide-react";
+import { supabase } from "../../lib/supabase";
 
 const links = [
   { to: "/", label: "Viajes", icon: Plane, end: true },
@@ -8,6 +9,12 @@ const links = [
 ];
 
 export function Layout() {
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+  }, []);
+
   return (
     <div className="flex h-full">
       <aside className="flex w-56 shrink-0 flex-col bg-slate-900 text-slate-300">
@@ -32,6 +39,16 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
+        <div className="mt-auto border-t border-slate-800 px-3 py-3">
+          {email && <div className="truncate px-3 pb-2 text-xs text-slate-400">{email}</div>}
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-slate-800 hover:text-white"
+          >
+            <LogOut size={17} />
+            Cerrar sesión
+          </button>
+        </div>
       </aside>
       <main className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-6xl px-8 py-7">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, MapPin, Plane, Plus, Users } from "lucide-react";
+import { CalendarDays, KeyRound, MapPin, Plane, Plus, Users } from "lucide-react";
 import { PageHeader } from "../../components/layout/Layout";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -10,10 +10,12 @@ import { useQuery } from "../../hooks/useQuery";
 import { formatDate } from "../../lib/format";
 import { listTrips } from "../../lib/repo";
 import { TripFormModal } from "./TripFormModal";
+import { JoinTripModal } from "./JoinTripModal";
 
 export function TripsPage() {
   const { data: trips = [], loading } = useQuery(listTrips, []);
   const [formOpen, setFormOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
   const navigate = useNavigate();
 
   return (
@@ -22,9 +24,14 @@ export function TripsPage() {
         title="Viajes"
         subtitle="Presupuesto, gastos y préstamos de cada viaje."
         actions={
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus size={16} /> Nuevo viaje
-          </Button>
+          <>
+            <Button variant="secondary" onClick={() => setJoinOpen(true)}>
+              <KeyRound size={16} /> Unirme con código
+            </Button>
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus size={16} /> Nuevo viaje
+            </Button>
+          </>
         }
       />
 
@@ -32,7 +39,7 @@ export function TripsPage() {
         <EmptyState
           icon={Plane}
           title="Aún no hay viajes"
-          description="Crea tu primer viaje, agrega a las personas y registra su presupuesto."
+          description="Crea tu primer viaje, o únete al de un compañero con su código de invitación."
           action={<Button onClick={() => setFormOpen(true)}>Crear viaje</Button>}
         />
       ) : (
@@ -88,6 +95,11 @@ export function TripsPage() {
         open={formOpen}
         onClose={() => setFormOpen(false)}
         onCreated={(id) => navigate(`/viajes/${id}`)}
+      />
+      <JoinTripModal
+        open={joinOpen}
+        onClose={() => setJoinOpen(false)}
+        onJoined={(id) => navigate(`/viajes/${id}`)}
       />
     </>
   );
