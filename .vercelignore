@@ -1,0 +1,3 @@
+# La app de escritorio (Tauri/Rust) no forma parte del despliegue web; si Vercel ve
+# src-tauri/Cargo.toml intenta compilarla con cargo y falla por falta de GTK.
+src-tauri
