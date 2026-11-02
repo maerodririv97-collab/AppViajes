@@ -7,14 +7,16 @@ import type {
   Person,
   RouteStop,
   Transfer,
-  Trip,
+  TripDetail,
   WalletBalance,
   WalletDeposit,
 } from "../../types";
 
 /** Todo lo que necesita la vista de un viaje; se carga una sola vez y se pasa a las pestañas. */
 export interface TripData {
-  trip: Trip;
+  trip: TripDetail;
+  /** false para visitantes: la vista se muestra sin acciones (y RLS rechaza las escrituras). */
+  canEdit: boolean;
   members: Person[];
   balances: MemberBalance[];
   contributions: Contribution[];

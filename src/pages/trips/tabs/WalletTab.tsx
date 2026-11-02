@@ -10,6 +10,7 @@ import type { Transfer, WalletDeposit } from "../../../types";
 import type { TripData } from "../tripData";
 import { TransferFormModal, type TransferPreset } from "./TransferFormModal";
 import { WalletDepositModal } from "./WalletDepositModal";
+import { Editable } from "../../../components/ui/ReadOnly";
 
 type Pending =
   | { type: "deposit"; item: WalletDeposit }
@@ -171,7 +172,9 @@ export function WalletTab({ data }: { data: TripData }) {
                     <th className="th">Fecha</th>
                     <th className="th">Persona</th>
                     <th className="th text-right">Valor</th>
-                    <th className="th w-24 text-right">Acciones</th>
+                    <th className="th w-24 text-right">
+                    <Editable>Acciones</Editable>
+                  </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -222,7 +225,9 @@ export function WalletTab({ data }: { data: TripData }) {
                     <th className="th">Fecha</th>
                     <th className="th">Movimiento</th>
                     <th className="th text-right">Valor</th>
-                    <th className="th w-24 text-right">Acciones</th>
+                    <th className="th w-24 text-right">
+                    <Editable>Acciones</Editable>
+                  </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">

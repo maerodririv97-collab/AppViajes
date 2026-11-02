@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes } from "react";
+import { useReadOnly } from "./ReadOnly";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 
@@ -15,6 +16,7 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function Button({ variant = "primary", size = "md", className = "", ...rest }: Props) {
+  if (useReadOnly()) return null;
   const sizing = size === "sm" ? "px-2.5 py-1.5 text-xs" : "px-4 py-2 text-sm";
   return (
     <button
@@ -30,6 +32,7 @@ interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function IconButton({ tone = "default", className = "", ...rest }: IconButtonProps) {
+  if (useReadOnly()) return null;
   const toneClass =
     tone === "danger"
       ? "text-slate-500 hover:bg-rose-50 hover:text-rose-600"

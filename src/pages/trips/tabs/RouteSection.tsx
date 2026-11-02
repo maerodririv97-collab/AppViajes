@@ -9,6 +9,7 @@ import { deleteRouteStop, setTripDates } from "../../../lib/repo";
 import type { ItineraryItem, ItineraryKind, RouteStop } from "../../../types";
 import type { TripData } from "../tripData";
 import { RouteStopFormModal } from "./RouteStopFormModal";
+import { Editable } from "../../../components/ui/ReadOnly";
 
 /** Abre el formulario del itinerario con datos ya rellenados. */
 export type AddItineraryFn = (kind: ItineraryKind, defaults: Partial<ItineraryItem>) => void;
@@ -39,9 +40,11 @@ function Missing({ children, tone = "danger" }: { children: ReactNode; tone?: "d
 }
 
 const AddLink = ({ onClick, children }: { onClick: () => void; children: ReactNode }) => (
-  <button type="button" onClick={onClick} className="text-xs font-medium text-teal-700 hover:underline">
-    {children}
-  </button>
+  <Editable>
+    <button type="button" onClick={onClick} className="text-xs font-medium text-teal-700 hover:underline">
+      {children}
+    </button>
+  </Editable>
 );
 
 function TravelCell({

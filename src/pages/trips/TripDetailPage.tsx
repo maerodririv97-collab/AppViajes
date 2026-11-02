@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CalendarDays, Check, Copy, MapPin, Pencil, Share2, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, Copy, Eye, MapPin, Pencil, Share2, Trash2 } from "lucide-react";
 import { PageHeader } from "../../components/layout/Layout";
 import { Button } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
@@ -24,7 +24,8 @@ import {
 } from "../../lib/repo";
 import { TripFormModal } from "./TripFormModal";
 import { MyPersonBanner, MyPersonModal } from "./MyPerson";
-import { GuestLinkModal } from "./GuestLinkModal";
+import { ShareModal } from "./ShareModal";
+import { ReadOnlyContext } from "../../components/ui/ReadOnly";
 import { SummaryTab } from "./tabs/SummaryTab";
 import { ItineraryTab } from "./tabs/ItineraryTab";
 import { ExpensesTab } from "./tabs/ExpensesTab";
@@ -79,6 +80,7 @@ async function loadTripData(id: number): Promise<TripData | null> {
     itinerary,
     route,
     ...links,
+    canEdit: trip.my_role !== "viewer",
   };
 }
 
@@ -108,8 +110,9 @@ export function TripDetailPage() {
   const { trip } = data;
   const me = data.members.find((m) => m.id === data.myPersonId);
 
+  // Visitantes: misma vista, sin acciones (los botones no se renderizan dentro del contexto).
   return (
-    <>
+    <ReadOnlyContext.Provider value={!data.canEdit}>
       <Link to="/" className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-600">
         <ArrowLeft size={15} /> Viajes
       </Link>
@@ -128,23 +131,30 @@ export function TripDetailPage() {
               </span>
             )}
             <span>Moneda: {trip.currency}</span>
-            {me && (
+            {me && data.canEdit && (
               <button onClick={() => setMyPersonOpen(true)} className="hover:text-teal-600" title="Cambiar">
                 Tú: <span className="font-medium text-slate-700">{me.name}</span>
               </button>
             )}
-            <button
-              onClick={async () => {
-                await navigator.clipboard.writeText(trip.invite_code);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
-              }}
-              title="Compártelo con tus compañeros para que se unan al viaje"
-              className="flex items-center gap-1 hover:text-teal-600"
-            >
-              Código: <span className="font-mono font-medium text-slate-700">{trip.invite_code}</span>
-              {copied ? <Check size={13} className="text-teal-600" /> : <Copy size={13} />}
-            </button>
+            {!data.canEdit && (
+              <span className="flex items-center gap-1 rounded bg-slate-100 px-1.5 text-slate-600">
+                <Eye size={13} /> Visitante · solo lectura
+              </span>
+            )}
+            {trip.invite_code && (
+              <button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(trip.invite_code!);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+                title="Compártelo con tus compañeros para que se unan al viaje"
+                className="flex items-center gap-1 hover:text-teal-600"
+              >
+                Código: <span className="font-mono font-medium text-slate-700">{trip.invite_code}</span>
+                {copied ? <Check size={13} className="text-teal-600" /> : <Copy size={13} />}
+              </button>
+            )}
           </div>
         }
         actions={
@@ -168,7 +178,7 @@ export function TripDetailPage() {
         }
       />
 
-      {!me && data.members.length > 0 && <MyPersonBanner data={data} />}
+      {!me && data.canEdit && data.members.length > 0 && <MyPersonBanner data={data} />}
 
       <div className="-mx-4 mb-6 flex gap-1 no-scrollbar overflow-x-auto overflow-y-hidden border-b border-slate-200 px-4 md:mx-0 md:px-0">
         {TABS.map((t) => (
@@ -196,7 +206,7 @@ export function TripDetailPage() {
 
       <TripFormModal open={editOpen} trip={trip} onClose={() => setEditOpen(false)} />
       <MyPersonModal open={myPersonOpen} data={data} onClose={() => setMyPersonOpen(false)} />
-      <GuestLinkModal open={shareOpen} trip={trip} onClose={() => setShareOpen(false)} />
+      <ShareModal open={shareOpen} trip={trip} onClose={() => setShareOpen(false)} />
       <ConfirmDialog
         open={deleteOpen}
         title="Eliminar viaje"
@@ -208,6 +218,6 @@ export function TripDetailPage() {
           if (await del.run(() => deleteTrip(trip.id))) navigate("/");
         }}
       />
-    </>
+    </ReadOnlyContext.Provider>
   );
 }

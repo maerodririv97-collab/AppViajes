@@ -10,6 +10,7 @@ import { deleteTransfer } from "../../../lib/repo";
 import type { Transfer } from "../../../types";
 import type { TripData } from "../tripData";
 import { TransferFormModal, type TransferPreset } from "./TransferFormModal";
+import { Editable } from "../../../components/ui/ReadOnly";
 
 export function TransfersTab({ data }: { data: TripData }) {
   const { trip, members, transfers, debts } = data;
@@ -92,7 +93,9 @@ export function TransfersTab({ data }: { data: TripData }) {
                   <th className="th">Movimiento</th>
                   <th className="th">Cubre / nota</th>
                   <th className="th text-right">Valor</th>
-                  <th className="th w-24 text-right">Acciones</th>
+                  <th className="th w-24 text-right">
+                    <Editable>Acciones</Editable>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

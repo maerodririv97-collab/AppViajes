@@ -14,11 +14,21 @@ export interface Trip {
   end_date: string | null;
   currency: string;
   notes: string | null;
-  /** Código que comparten los compañeros para unirse al viaje (join_trip). */
-  invite_code: string;
-  /** Código del link de invitado (solo lectura de itinerario y ruta); null = desactivado. */
-  guest_code: string | null;
   created_at: string;
+}
+
+/** owner/editor: ven y editan todo; viewer (visitante): ve todo, no modifica nada. */
+export type TripRole = "owner" | "editor" | "viewer";
+
+/** Viaje abierto por una cuenta: con su rol y los códigos de acceso (null para visitantes). */
+export interface TripDetail extends Trip {
+  my_role: TripRole;
+  /** Código para que los compañeros se unan como editores (join_trip). */
+  invite_code: string | null;
+  /** Código para unirse como visitante; null = desactivado (o quien mira es visitante). */
+  viewer_code: string | null;
+  /** Código del link de invitado sin cuenta (itinerario y ruta); null = desactivado. */
+  guest_code: string | null;
 }
 
 /** Lo que ve un invitado con el link: sin dinero ni códigos de reserva. */

@@ -9,6 +9,7 @@ import { addMember, listPeople, removeMember } from "../../../lib/repo";
 import type { Person } from "../../../types";
 import { PersonFormModal } from "../../people/PersonFormModal";
 import type { TripData } from "../tripData";
+import { Editable } from "../../../components/ui/ReadOnly";
 
 export function MembersTab({ data }: { data: TripData }) {
   const { trip, members, balances } = data;
@@ -29,28 +30,30 @@ export function MembersTab({ data }: { data: TripData }) {
 
   return (
     <div className="space-y-6">
-      <div className="card p-4">
-        <span className="label">Agregar integrante</span>
-        <div className="flex gap-2">
-          <select className="input max-w-xs" value={selected} onChange={(e) => setSelected(e.target.value)}>
-            <option value="">
-              {candidates.length ? "Selecciona una persona…" : "No hay más personas disponibles"}
-            </option>
-            {candidates.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
+      <Editable>
+        <div className="card p-4">
+          <span className="label">Agregar integrante</span>
+          <div className="flex gap-2">
+            <select className="input max-w-xs" value={selected} onChange={(e) => setSelected(e.target.value)}>
+              <option value="">
+                {candidates.length ? "Selecciona una persona…" : "No hay más personas disponibles"}
               </option>
-            ))}
-          </select>
-          <Button onClick={addSelected} disabled={!selected || add.busy}>
-            <UserPlus size={15} /> Agregar
-          </Button>
-          <Button variant="secondary" onClick={() => setPersonFormOpen(true)}>
-            <Plus size={15} /> Crear persona nueva
-          </Button>
+              {candidates.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <Button onClick={addSelected} disabled={!selected || add.busy}>
+              <UserPlus size={15} /> Agregar
+            </Button>
+            <Button variant="secondary" onClick={() => setPersonFormOpen(true)}>
+              <Plus size={15} /> Crear persona nueva
+            </Button>
+          </div>
+          {add.error && <ErrorBox message={add.error} />}
         </div>
-        {add.error && <ErrorBox message={add.error} />}
-      </div>
+      </Editable>
 
       <div className="card overflow-hidden">
         {members.length === 0 ? (

@@ -19,7 +19,7 @@ import type {
   Transfer,
   TransferKind,
   TransferScope,
-  Trip,
+  TripDetail,
   TripListItem,
   WalletBalance,
   WalletDeposit,
@@ -87,8 +87,9 @@ export async function listTrips(): Promise<TripListItem[]> {
   return unwrap(await supabase.rpc("list_trips"));
 }
 
-export async function getTrip(id: number): Promise<Trip | null> {
-  return unwrap(await supabase.from("trips").select("*").eq("id", id).maybeSingle());
+/** Los códigos del viaje no se leen de la tabla (los visitantes no deben verlos): van por get_trip. */
+export async function getTrip(id: number): Promise<TripDetail | null> {
+  return unwrap(await supabase.rpc("get_trip", { p_trip_id: id }).maybeSingle());
 }
 
 const tripRow = (input: TripInput) => ({
@@ -122,6 +123,13 @@ export async function joinTrip(code: string): Promise<number> {
 }
 
 // ─── Link de invitado ──────────────────────────────────────────────────────
+
+/** Activa el código de visitante con uno nuevo (o lo desactiva). Devuelve el código o null. */
+export async function setViewerCode(tripId: number, enabled: boolean): Promise<string | null> {
+  const { data, error } = await supabase.rpc("set_viewer_code", { p_trip_id: tripId, p_enabled: enabled });
+  if (error) throw new Error(error.message);
+  return data;
+}
 
 /** Activa el link de invitado con un código nuevo (o lo desactiva). Devuelve el código o null. */
 export async function setGuestCode(tripId: number, enabled: boolean): Promise<string | null> {
